@@ -32,3 +32,4 @@ use the editor.
 ## ATM KOTA
 
 - Keep the pilot interface in reusable route-adjacent components, with demonstration records isolated from live data and visibly labelled, so examples can never be mistaken for verified ATMs.
+- Keep the ATM KOTA first screen public and use its in-page navigation for the MVP's five areas, so unauthenticated ATM discovery remains available while account-dependent features are introduced later.
