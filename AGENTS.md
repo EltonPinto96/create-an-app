@@ -28,3 +28,7 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+
+## ATM KOTA
+
+- Keep the pilot interface in reusable route-adjacent components, with demonstration records isolated from live data and visibly labelled, so examples can never be mistaken for verified ATMs.
