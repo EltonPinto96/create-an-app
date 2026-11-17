@@ -94,6 +94,8 @@ function Index() {
   const [section, setSection] = useState<Section>("home");
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
+  const [selectedBank, setSelectedBank] = useState<string>("all");
+  const [selectedMunicipality, setSelectedMunicipality] = useState<string>("all");
   const [locationMessage, setLocationMessage] = useState("");
   const [selectedAtm, setSelectedAtm] = useState<AtmData | null>(null);
   const [showInfo, setShowInfo] = useState(false);
@@ -147,6 +149,21 @@ function Index() {
     return [...dbMapped, ...remainingReal];
   }, [dbAtms]);
 
+  const bankOptions = useMemo(() => {
+    const banks = Array.from(new Set(atmList.map((a) => a.bank))).filter(Boolean);
+    return banks.sort();
+  }, [atmList]);
+
+  const municipalityOptions = [
+    "Maianga",
+    "Talatona",
+    "Viana",
+    "Cazenga",
+    "Kilamba",
+    "Ingombota",
+    "Belas",
+  ];
+
   const visibleAtms = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase("pt-AO");
     return atmList.filter((atm) => {
@@ -154,9 +171,16 @@ function Index() {
         .toLocaleLowerCase("pt-AO")
         .includes(needle);
       const avail = atm.availability as string;
-      return matchesText && (filter === "all" || avail === filter);
+      const matchesAvail = filter === "all" || avail === filter;
+      const matchesBank =
+        selectedBank === "all" ||
+        atm.bank.toLowerCase().includes(selectedBank.toLowerCase());
+      const matchesMunicipality =
+        selectedMunicipality === "all" ||
+        atm.area.toLowerCase().includes(selectedMunicipality.toLowerCase());
+      return matchesText && matchesAvail && matchesBank && matchesMunicipality;
     });
-  }, [filter, query, atmList]);
+  }, [filter, query, selectedBank, selectedMunicipality, atmList]);
 
   function useLocation() {
     if (!navigator.geolocation) {
@@ -357,6 +381,9 @@ function Index() {
               onSelect={setSelectedAtm}
               isFavorite={isFavorite}
               onToggleFavorite={toggleFavorite}
+              selectedBank={selectedBank}
+              setSelectedBank={setSelectedBank}
+              bankOptions={bankOptions}
             />
           )}
           {section === "search" && (
@@ -369,6 +396,12 @@ function Index() {
               onSelect={setSelectedAtm}
               isFavorite={isFavorite}
               onToggleFavorite={toggleFavorite}
+              selectedBank={selectedBank}
+              setSelectedBank={setSelectedBank}
+              bankOptions={bankOptions}
+              selectedMunicipality={selectedMunicipality}
+              setSelectedMunicipality={setSelectedMunicipality}
+              municipalityOptions={municipalityOptions}
             />
           )}
           {section === "map" && <MapView atms={atmList} onSelect={setSelectedAtm} />}
@@ -575,6 +608,9 @@ function HomeView({
   onSelect,
   isFavorite,
   onToggleFavorite,
+  selectedBank,
+  setSelectedBank,
+  bankOptions,
 }: {
   query: string;
   setQuery: (value: string) => void;
@@ -585,6 +621,9 @@ function HomeView({
   onSelect: (atm: AtmData) => void;
   isFavorite: (id: string) => boolean;
   onToggleFavorite: (id: string) => void;
+  selectedBank: string;
+  setSelectedBank: (v: string) => void;
+  bankOptions: string[];
 }) {
   const counts = [
     { key: "available", label: "Com dinheiro", amount: 1, icon: ArrowUpRight },
@@ -664,6 +703,34 @@ function HomeView({
             Abrir mapa <ChevronRight className="size-4" aria-hidden="true" />
           </Button>
         </div>
+        {/* Filtro rápido por banco */}
+        {bankOptions.length > 0 && (
+          <div className="mb-4 flex flex-wrap gap-2">
+            <button
+              onClick={() => setSelectedBank("all")}
+              className={`rounded-full px-3 py-1 text-xs font-semibold border transition-colors ${
+                selectedBank === "all"
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "border-border text-muted-foreground hover:bg-secondary"
+              }`}
+            >
+              Todos
+            </button>
+            {bankOptions.map((bank) => (
+              <button
+                key={bank}
+                onClick={() => setSelectedBank(bank)}
+                className={`rounded-full px-3 py-1 text-xs font-semibold border transition-colors ${
+                  selectedBank === bank
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "border-border text-muted-foreground hover:bg-secondary"
+                }`}
+              >
+                {bank}
+              </button>
+            ))}
+          </div>
+        )}
         {visibleAtms.length ? (
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-2">
             {visibleAtms.slice(0, 4).map((atm) => (
@@ -691,6 +758,12 @@ function SearchView({
   onSelect,
   isFavorite,
   onToggleFavorite,
+  selectedBank,
+  setSelectedBank,
+  bankOptions,
+  selectedMunicipality,
+  setSelectedMunicipality,
+  municipalityOptions,
 }: {
   query: string;
   setQuery: (value: string) => void;
@@ -700,6 +773,12 @@ function SearchView({
   onSelect: (atm: AtmData) => void;
   isFavorite: (id: string) => boolean;
   onToggleFavorite: (id: string) => void;
+  selectedBank: string;
+  setSelectedBank: (v: string) => void;
+  bankOptions: string[];
+  selectedMunicipality: string;
+  setSelectedMunicipality: (v: string) => void;
+  municipalityOptions: string[];
 }) {
   return (
     <>
@@ -719,6 +798,26 @@ function SearchView({
             <option value="no-cash">Reportado sem dinheiro</option>
             <option value="out-of-service">Fora de serviço</option>
             <option value="stale">Informação desactualizada</option>
+          </select>
+        </label>
+        <label className="flex h-11 items-center gap-2 border border-input bg-background px-3 text-sm">
+          <Banknote className="size-4 text-muted-foreground" aria-hidden="true" />
+          <span className="sr-only">Filtrar por banco</span>
+          <select value={selectedBank} onChange={(event) => setSelectedBank(event.target.value)} className="h-full min-w-36 bg-transparent text-sm outline-none">
+            <option value="all">Todos os bancos</option>
+            {bankOptions.map((bank) => (
+              <option key={bank} value={bank}>{bank}</option>
+            ))}
+          </select>
+        </label>
+        <label className="flex h-11 items-center gap-2 border border-input bg-background px-3 text-sm">
+          <MapPin className="size-4 text-muted-foreground" aria-hidden="true" />
+          <span className="sr-only">Filtrar por município</span>
+          <select value={selectedMunicipality} onChange={(event) => setSelectedMunicipality(event.target.value)} className="h-full min-w-36 bg-transparent text-sm outline-none">
+            <option value="all">Todos os municípios</option>
+            {municipalityOptions.map((m) => (
+              <option key={m} value={m}>{m}</option>
+            ))}
           </select>
         </label>
       </div>
