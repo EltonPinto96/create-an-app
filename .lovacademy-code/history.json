@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-11-17T08:12:02.126Z",
+  "updated_at": "2026-11-17T08:14:02.095Z",
   "messages": [
     {
       "role": "user",
@@ -44,6 +44,15 @@
     {
       "role": "assistant",
       "text": "O ATM KOTA já tem uma prévia descrita no código: um dashboard responsivo com navegação para Início, Mapa, Pesquisar, Favoritos e Perfil. A página inicial inclui pesquisa, pedido de localização, indicadores e cartões de ATM fictícios, todos identificados como demonstração. O mapa e as áreas de conta mostram que ainda estão em preparação.\n\nNão consigo abrir a prévia visual daqui. Para a veres, inicia a aplicação no editor Lovable ou no ambiente de desenvolvimento do projecto."
+    },
+    {
+      "role": "user",
+      "text": "sera que ja esta pronta , quais são os proximos passos?",
+      "attachments": []
+    },
+    {
+      "role": "assistant",
+      "text": "O ATM KOTA ainda não está pronto para lançamento. Pelo histórico, existe uma interface inicial responsiva, mas autenticação, favoritos persistentes, mapa real, reportes de disponibilidade e moderação ainda precisam ser implementados. Os ATM mostrados são dados de demonstração e não devem ser tratados como informação real.\n\nPróximos passos recomendados:\n\n1. **Conferir a prévia** no editor e ajustar a experiência em telemóveis e computadores.\n2. **Ligar uma fonte de dados real** para ATM em Luanda e definir como validar endereços e coordenadas.\n3. **Configurar autenticação e base de dados**, por exemplo com Supabase, para contas, favoritos e reportes.\n4. **Implementar o mapa** com geolocalização, pesquisa manual e filtros.\n5. **Criar o fluxo de reportes**, incluindo confirmação antes do envio, validade de 60 minutos e indicação clara de informação desactualizada.\n6. **Adicionar moderação e administração** para reduzir reportes abusivos ou incorrectos.\n7. **Testar com utilizadores em Luanda** e só depois preparar o lançamento.\n\nEu começaria por escolher a fonte de dados dos ATM e configurar o Supabase; essas decisões orientam as próximas funcionalidades."
     }
   ]
 }
