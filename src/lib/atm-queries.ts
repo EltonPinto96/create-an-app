@@ -72,10 +72,11 @@ async function fetchApprovedAtms(): Promise<AtmWithLatestReport[]> {
   })) as AtmWithLatestReport[]
 }
 
-export function useApprovedAtms() {
+export function useApprovedAtms(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: atmQueryKeys.approved(),
     queryFn: fetchApprovedAtms,
+    enabled: options?.enabled ?? true,
     staleTime: 1000 * 60 * 2, // 2 minutos
     refetchInterval: hasSupabase ? 1000 * 60 * 5 : false,
   })

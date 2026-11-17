@@ -47,6 +47,7 @@ import { AdminPanel } from "@/components/AdminPanel";
 import { InteractiveMap } from "@/components/InteractiveMap";
 import { useAuth } from "@/lib/auth-context";
 import { AuthModal } from "@/components/AuthModal";
+import { AuthGatePortal } from "@/components/AuthGatePortal";
 import { useFavorites } from "@/lib/use-favorites";
 import { BankStats } from "@/components/BankStats";
 import { useFavoriteNotifications } from "@/lib/use-favorite-notifications";
@@ -98,7 +99,7 @@ const statusCopy: Record<DemoAvailability, { label: string; className: string }>
 };
 
 function Index() {
-  const { user, profile, isAdmin, isModerator, canModerate } = useAuth();
+  const { user, profile, isAdmin, isModerator, canModerate, loading } = useAuth();
   const { favoriteIds, isFavorite, toggleFavorite } = useFavorites();
   const [section, setSection] = useState<Section>("home");
   const [query, setQuery] = useState("");
@@ -119,6 +120,7 @@ function Index() {
   const [isLocating, setIsLocating] = useState(false);
   const [locationLabel, setLocationLabel] = useState<string>("Localização GPS");
   const [customOverrides, setCustomOverrides] = useState<Record<string, Partial<RealAtm>>>({});
+  const [devBypass, setDevBypass] = useState(false);
 
   function openAuth(mode: "login" | "register" = "login", reason?: string | null) {
     setAuthModalMode(mode);
@@ -148,7 +150,7 @@ function Index() {
     setShowSubmitAtm(true);
   }
 
-  const { data: dbAtms } = useApprovedAtms();
+  const { data: dbAtms } = useApprovedAtms({ enabled: !!user || devBypass });
 
   const atmList: AtmData[] = useMemo(() => {
     const dbMapped: RealAtm[] = (dbAtms ?? []).map((item) => {
@@ -409,8 +411,55 @@ function Index() {
     );
   }
 
+  // 1. Estado de carregamento inicial da sessão
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#F7F4EC] text-[#26362F] selection:bg-[#C09A5B]/30">
+        <div className="flex size-16 items-center justify-center rounded-2xl bg-[#26362F] shadow-xl border border-[#C09A5B]/50 animate-pulse">
+          <KusangaSymbol size={40} />
+        </div>
+        <p className="mt-5 font-display text-base font-extrabold tracking-tight text-[#26362F]">
+          KUSANGA <span className="text-[#C09A5B]">KITADI</span>
+        </p>
+        <p className="text-xs text-[#718477] mt-1 font-medium">A verificar sessão segura...</p>
+      </div>
+    );
+  }
+
+  // 2. Auth Gate Global: se não estiver autenticado (e não em bypass dev), apresenta o portal de entrada
+  if (!user && !devBypass) {
+    return (
+      <>
+        <AuthGatePortal
+          onOpenEmailAuth={(mode) => openAuth(mode)}
+          onBypassDev={() => setDevBypass(true)}
+        />
+        <AuthModal
+          isOpen={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+          defaultMode={authModalMode}
+          requiredReason={authRequiredReason}
+        />
+      </>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground">
+      {/* Banner de Modo Convidado em Desenvolvimento */}
+      {devBypass && !user && (
+        <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 text-center text-xs text-amber-900 font-medium flex items-center justify-center gap-2">
+          <span>Modo Demonstração (Dev) — Em produção, o acesso aos ATM exige login obrigatório.</span>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-6 text-[11px] px-2 border-amber-600/40 text-amber-900 hover:bg-amber-600/10"
+            onClick={() => openAuth("login")}
+          >
+            Entrar com Conta
+          </Button>
+        </div>
+      )}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-border bg-background lg:flex">
         <Brand onClick={() => setSection("home")} />
         <nav aria-label="Navegação principal" className="flex-1 space-y-6 px-4 py-6 overflow-y-auto">
