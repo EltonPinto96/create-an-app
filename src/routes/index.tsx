@@ -128,7 +128,7 @@ function Index() {
         </div>
       </aside>
 
-      <div className="lg:pl-64">
+      <div className="min-w-0 lg:pl-64">
         <header className="sticky top-0 z-20 flex h-[68px] items-center justify-between border-b border-border bg-background/95 px-4 backdrop-blur md:px-8">
           <div className="lg:hidden"><Brand compact /></div>
           <div className="hidden items-center gap-2 text-sm text-muted-foreground lg:flex">
@@ -163,7 +163,7 @@ function Index() {
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-[1440px] px-4 pb-28 pt-7 sm:px-7 md:pt-9 lg:px-10 lg:pb-12">
+        <main id="conteudo-principal" className="mx-auto w-full max-w-[1440px] min-w-0 px-4 pb-28 pt-7 sm:px-7 md:pt-9 lg:px-10 lg:pb-12">
           {showInfo && (
             <div role="status" className="mb-5 flex items-start justify-between gap-3 border border-status-stale/25 bg-status-stale/10 px-4 py-3 text-sm">
               <p className="leading-6">Esta versão mostra apenas exemplos fictícios. A consulta de ATM reais será activada quando existir uma lista validada.</p>
@@ -251,6 +251,7 @@ function NavButton({
         ? `flex h-[58px] w-full flex-col gap-1 rounded-none px-1 text-[10px] ${active ? "text-primary" : "text-muted-foreground"}`
         : `h-11 w-full justify-start rounded-md px-3 text-sm ${active ? "bg-secondary font-semibold text-primary" : "font-medium text-muted-foreground"}`}
       aria-current={active ? "page" : undefined}
+      aria-label={mobile ? item.label : undefined}
       onClick={onClick}
     >
       <Icon className={mobile ? "size-[19px]" : "size-[18px]"} strokeWidth={active ? 2.3 : 1.8} aria-hidden="true" />
