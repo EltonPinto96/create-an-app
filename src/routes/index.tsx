@@ -53,6 +53,7 @@ import { useFavoriteNotifications } from "@/lib/use-favorite-notifications";
 import { NotificationsModal } from "@/components/NotificationsModal";
 import { KusangaLogo, KusangaSymbol, KusangaSloganPill } from "@/components/KusangaLogo";
 import { NearbyAtmsModal } from "@/components/NearbyAtmsModal";
+import { FloatingNearbyButton } from "@/components/FloatingNearbyButton";
 
 type Section = "home" | "map" | "search" | "favorites" | "profile" | "admin";
 type Filter = "all" | DemoAvailability;
@@ -411,16 +412,64 @@ function Index() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-border bg-background lg:flex">
-        <Brand />
-        <nav aria-label="Navegação principal" className="flex-1 space-y-1 px-4 py-7">
-          {navigation.map((item) => (
-            <NavButton
-              key={item.id}
-              active={section === item.id}
-              item={item}
-              onClick={() => setSection(item.id)}
-            />
-          ))}
+        <Brand onClick={() => setSection("home")} />
+        <nav aria-label="Navegação principal" className="flex-1 space-y-6 px-4 py-6 overflow-y-auto">
+          <div>
+            <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70 mb-2">
+              Explorar
+            </p>
+            <div className="space-y-1">
+              <NavButton
+                active={section === "home"}
+                item={{ id: "home", label: "Início", icon: House }}
+                onClick={() => setSection("home")}
+              />
+              <NavButton
+                active={section === "map"}
+                item={{ id: "map", label: "Mapa de Caixas", icon: Map }}
+                onClick={() => setSection("map")}
+              />
+              <NavButton
+                active={section === "search"}
+                item={{ id: "search", label: "Pesquisar ATM", icon: Search }}
+                onClick={() => setSection("search")}
+              />
+            </div>
+          </div>
+
+          <div>
+            <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70 mb-2">
+              Comunidade & Pessoal
+            </p>
+            <div className="space-y-1">
+              <NavButton
+                active={section === "favorites"}
+                item={{ id: "favorites", label: "Favoritos & Alertas", icon: Heart }}
+                onClick={() => setSection("favorites")}
+              />
+              <NavButton
+                active={section === "profile"}
+                item={{ id: "profile", label: "Meu Perfil", icon: UserRound }}
+                onClick={() => setSection("profile")}
+              />
+            </div>
+          </div>
+
+          {canModerate && (
+            <div>
+              <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-[#C09A5B] mb-2 flex items-center gap-1.5">
+                <ShieldCheck className="size-3 text-[#C09A5B]" />
+                Administração
+              </p>
+              <div className="space-y-1">
+                <NavButton
+                  active={section === "admin"}
+                  item={{ id: "admin", label: "Painel de Moderação", icon: ShieldCheck }}
+                  onClick={() => setSection("admin")}
+                />
+              </div>
+            </div>
+          )}
         </nav>
         <div className="mx-4 mb-5 border-t border-border pt-4">
           <div className="flex items-start gap-2.5 px-3 py-2">
@@ -437,7 +486,7 @@ function Index() {
 
       <div className="min-w-0 lg:pl-64">
         <header className="sticky top-0 z-20 flex h-[68px] items-center justify-between border-b border-border bg-background/95 px-4 backdrop-blur md:px-8">
-          <div className="lg:hidden"><Brand compact /></div>
+          <div className="lg:hidden"><Brand compact onClick={() => setSection("home")} /></div>
           <div className="hidden items-center gap-2 text-sm text-muted-foreground lg:flex">
             <MapPin className="size-4 text-primary" aria-hidden="true" />
             Luanda, Angola
@@ -448,15 +497,7 @@ function Index() {
               <span className="size-1.5 rounded-full bg-primary" aria-hidden="true" />
               {hasSupabase ? "Dados reais" : "Pré-lançamento"}
             </Badge>
-            <Button
-              variant="outline"
-              className="h-9 rounded-md px-3 text-xs gap-1.5 border-[#C09A5B]/50 text-[#C09A5B] hover:bg-[#C09A5B]/10 font-bold inline-flex"
-              onClick={useLocation}
-              title="Ver ATMs mais próximos com base na sua localização"
-            >
-              <Crosshair className={`size-3.5 ${isLocating ? "animate-spin" : ""}`} aria-hidden="true" />
-              <span className="hidden md:inline">Perto de Mim</span>
-            </Button>
+
             <Button
               variant="ghost"
               size="icon"
@@ -474,15 +515,17 @@ function Index() {
                 <span className="absolute right-2 top-2 size-1.5 rounded-full bg-status-stale" />
               ) : null}
             </Button>
-            <Button
-              variant="outline"
-              className="h-9 rounded-md px-3 text-xs gap-1.5 border-primary/30 text-primary hover:bg-primary/10 inline-flex"
-              onClick={() => setSection("admin")}
-              title="Abrir painel de moderação de administrador"
-            >
-              <ShieldCheck className="size-3.5" aria-hidden="true" />
-              Moderação
-            </Button>
+            {canModerate && (
+              <Button
+                variant="outline"
+                className="h-9 rounded-md px-3 text-xs gap-1.5 border-primary/30 text-primary hover:bg-primary/10 inline-flex"
+                onClick={() => setSection("admin")}
+                title="Abrir painel de moderação de administrador"
+              >
+                <ShieldCheck className="size-3.5" aria-hidden="true" />
+                Moderação
+              </Button>
+            )}
             {user ? (
               <Button
                 variant="outline"
@@ -525,63 +568,93 @@ function Index() {
           )}
 
           {section === "home" && (
-            <HomeView
-              query={query}
-              setQuery={setQuery}
-              visibleAtms={visibleAtms}
-              atmList={atmList}
-              onLocation={useLocation}
-              locationMessage={locationMessage}
-              onMap={() => setSection("map")}
-              onSelect={setSelectedAtm}
-              isFavorite={isFavorite}
-              onToggleFavorite={toggleFavorite}
-              selectedBank={selectedBank}
-              setSelectedBank={setSelectedBank}
-              bankOptions={bankOptions}
-            />
+            <div key="home" className="section-fade-enter">
+              <HomeView
+                query={query}
+                setQuery={setQuery}
+                onSearchSubmit={(val) => {
+                  setQuery(val);
+                  setSection("search");
+                }}
+                atmList={atmList}
+                onLocation={useLocation}
+                locationMessage={locationMessage}
+                onMap={() => setSection("map")}
+                onSearch={() => setSection("search")}
+                onFavorites={() => setSection("favorites")}
+                onReport={() => {
+                  if (!user) {
+                    openAuth(
+                      "login",
+                      "O login com a tua conta Google é obrigatório para reportar notas e apoiar a comunidade."
+                    );
+                    return;
+                  }
+                  if (atmList.length > 0) {
+                    setReportingAtm(atmList[0] as RealAtm);
+                  } else {
+                    setSection("search");
+                  }
+                }}
+                onSelect={setSelectedAtm}
+                isFavorite={isFavorite}
+                onToggleFavorite={toggleFavorite}
+              />
+            </div>
           )}
           {section === "search" && (
-            <SearchView
-              query={query}
-              setQuery={setQuery}
-              filter={filter}
-              setFilter={setFilter}
-              visibleAtms={visibleAtms}
-              onSelect={setSelectedAtm}
-              isFavorite={isFavorite}
-              onToggleFavorite={toggleFavorite}
-              selectedBank={selectedBank}
-              setSelectedBank={setSelectedBank}
-              bankOptions={bankOptions}
-              selectedMunicipality={selectedMunicipality}
-              setSelectedMunicipality={setSelectedMunicipality}
-              municipalityOptions={municipalityOptions}
-            />
+            <div key="search" className="section-fade-enter">
+              <SearchView
+                query={query}
+                setQuery={setQuery}
+                filter={filter}
+                setFilter={setFilter}
+                visibleAtms={visibleAtms}
+                onSelect={setSelectedAtm}
+                isFavorite={isFavorite}
+                onToggleFavorite={toggleFavorite}
+                selectedBank={selectedBank}
+                setSelectedBank={setSelectedBank}
+                bankOptions={bankOptions}
+                selectedMunicipality={selectedMunicipality}
+                setSelectedMunicipality={setSelectedMunicipality}
+                municipalityOptions={municipalityOptions}
+              />
+            </div>
           )}
-          {section === "map" && <MapView atms={atmList} onSelect={setSelectedAtm} onOpenNearby={useLocation} />}
+          {section === "map" && (
+            <div key="map" className="section-fade-enter">
+              <MapView atms={atmList} onSelect={setSelectedAtm} onOpenNearby={useLocation} />
+            </div>
+          )}
           {section === "favorites" && (
-            <FavoritesView
-              atms={atmList}
-              favoriteIds={favoriteIds}
-              onSelect={setSelectedAtm}
-              onToggleFavorite={toggleFavorite}
-              onExplore={() => setSection("home")}
-              notifications={notifications}
-              onSimulateChange={simulateStatusChange}
-              onOpenNotifications={() => setShowNotificationsModal(true)}
-            />
+            <div key="favorites" className="section-fade-enter">
+              <FavoritesView
+                atms={atmList}
+                favoriteIds={favoriteIds}
+                onSelect={setSelectedAtm}
+                onToggleFavorite={toggleFavorite}
+                onExplore={() => setSection("home")}
+                notifications={notifications}
+                onSimulateChange={simulateStatusChange}
+                onOpenNotifications={() => setShowNotificationsModal(true)}
+              />
+            </div>
           )}
           {section === "profile" && (
-            <ProfileView
-              onShowInfo={() => setShowInfo(true)}
-              onSubmitAtm={handleInitiateSubmitAtm}
-              onOpenAdmin={() => setSection("admin")}
-              onOpenAuth={openAuth}
-            />
+            <div key="profile" className="section-fade-enter">
+              <ProfileView
+                onShowInfo={() => setShowInfo(true)}
+                onSubmitAtm={handleInitiateSubmitAtm}
+                onOpenAdmin={() => setSection("admin")}
+                onOpenAuth={openAuth}
+              />
+            </div>
           )}
           {section === "admin" && (
-            <AdminPanel onBackToApp={() => setSection("home")} />
+            <div key="admin" className="section-fade-enter">
+              <AdminPanel onBackToApp={() => setSection("home")} />
+            </div>
           )}
 
           {/* Modal: detalhes de ATM */}
@@ -721,6 +794,14 @@ function Index() {
         </main>
       </div>
 
+      {/* Botão Flutuante Global e Permanente "Perto de mim" (Visível em todas as secções) */}
+      <FloatingNearbyButton
+        onClick={useLocation}
+        isLocating={isLocating}
+        hasLocation={Boolean(userCoords)}
+        errorMessage={locationMessage.includes("indisponível") ? locationMessage : null}
+      />
+
       <nav aria-label="Navegação móvel" className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-border bg-background/95 px-2 pb-[env(safe-area-inset-bottom)] pt-1 backdrop-blur lg:hidden">
         {navigation.map((item) => (
           <NavButton key={item.id} active={section === item.id} item={item} onClick={() => setSection(item.id)} mobile />
@@ -730,22 +811,40 @@ function Index() {
   );
 }
 
-function Brand({ compact = false }: { compact?: boolean }) {
+function Brand({
+  compact = false,
+  onClick,
+}: {
+  compact?: boolean;
+  onClick?: () => void;
+}) {
   if (compact) {
     return (
-      <div className="py-1">
+      <button
+        type="button"
+        onClick={onClick}
+        className="flex items-center text-left py-1 cursor-pointer transition-transform duration-200 hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C09A5B] rounded-md"
+        title="Voltar à página inicial — Kusanga Kitadi"
+        aria-label="Kusanga Kitadi — Página Inicial"
+      >
         <KusangaLogo variant="compact" size={32} theme="light" />
-      </div>
+      </button>
     );
   }
 
   return (
-    <div className="px-5 py-5 border-b border-border/80">
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full text-left px-5 py-5 border-b border-border/80 cursor-pointer transition-transform duration-200 hover:opacity-90 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C09A5B]"
+      title="Voltar à página inicial — Kusanga Kitadi"
+      aria-label="Kusanga Kitadi — Página Inicial"
+    >
       <KusangaLogo variant="brand" size={40} theme="light" />
       <p className="mt-2 text-[10px] font-bold uppercase tracking-wider text-[#C09A5B]">
         A força está na ligação
       </p>
-    </div>
+    </button>
   );
 }
 
@@ -813,91 +912,89 @@ function DemoNotice() {
 function HomeView({
   query,
   setQuery,
-  visibleAtms,
+  onSearchSubmit,
   atmList,
   onLocation,
   locationMessage,
   onMap,
+  onSearch,
+  onFavorites,
+  onReport,
   onSelect,
   isFavorite,
   onToggleFavorite,
-  selectedBank,
-  setSelectedBank,
-  bankOptions,
 }: {
   query: string;
   setQuery: (value: string) => void;
-  visibleAtms: AtmData[];
+  onSearchSubmit: (value: string) => void;
   atmList: AtmData[];
   onLocation: () => void;
   locationMessage: string;
   onMap: () => void;
+  onSearch: () => void;
+  onFavorites: () => void;
+  onReport: () => void;
   onSelect: (atm: AtmData) => void;
   isFavorite: (id: string) => boolean;
   onToggleFavorite: (id: string) => void;
-  selectedBank: string;
-  setSelectedBank: (v: string) => void;
-  bankOptions: string[];
 }) {
-  const counts = useMemo(() => {
-    const avail = atmList.filter((a) => a.availability === "available").length;
-    const noCash = atmList.filter((a) => a.availability === "no-cash").length;
-    const offline = atmList.filter((a) => a.availability === "out-of-service").length;
-    const stale = atmList.filter((a) => a.availability === "stale" || !a.availability).length;
+  const availableCount = atmList.filter((a) => a.availability === "available").length;
+  const noCashCount = atmList.filter((a) => a.availability === "no-cash").length;
 
-    return [
-      { key: "available" as const, label: "Com dinheiro", amount: avail, icon: ArrowUpRight },
-      { key: "no-cash" as const, label: "Sem dinheiro", amount: noCash, icon: ArrowDownRight },
-      { key: "out-of-service" as const, label: "Fora de serviço", amount: offline, icon: X },
-      { key: "stale" as const, label: "Sem informação recente", amount: stale, icon: Clock3 },
-    ];
+  const confirmedWithCash = useMemo(() => {
+    const withCash = atmList.filter((a) => a.availability === "available");
+    return withCash.slice(0, 4);
   }, [atmList]);
 
   return (
     <>
-      {/* Hero Oficial Kusanga Kitadi — Tecnologia Africana Premium */}
-      <section className="relative mb-8 overflow-hidden rounded-3xl border border-[#C09A5B]/30 bg-gradient-to-br from-[#2D4037] via-[#26362F] to-[#1C2923] text-[#F7F4EC] shadow-lg">
-        {/* Padrão geométrico subtil em marca de água nos cantos */}
+      {/* Hero Minimalista & Caixa de Pesquisa Destacada */}
+      <section className="relative mb-6 overflow-hidden rounded-3xl border border-[#C09A5B]/30 bg-gradient-to-br from-[#2D4037] via-[#26362F] to-[#1C2923] text-[#F7F4EC] shadow-md">
         <div className="pointer-events-none absolute -right-16 -top-16 size-80 rounded-full border border-[#C09A5B]/15" />
-        <div className="pointer-events-none absolute -right-24 -top-24 size-96 rounded-full border border-[#C09A5B]/10" />
-
-        <div className="relative z-10 flex flex-col items-start px-6 py-9 sm:px-10 md:py-12">
-          {/* Cápsula do Slogan Oficial */}
-          <div className="mb-4">
+        <div className="relative z-10 flex flex-col items-start px-6 py-8 sm:px-9 md:py-10">
+          <div className="mb-3">
             <KusangaSloganPill dark />
           </div>
 
-          <h1 className="max-w-2xl font-display text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl lg:text-[42px] text-[#F7F4EC]">
+          <h1 className="max-w-2xl font-display text-2xl sm:text-3xl lg:text-[38px] font-extrabold leading-tight tracking-tight text-[#F7F4EC]">
             A força está na ligação. <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FFF2CE] via-[#D8B168] to-[#C09A5B]">
               Saiba onde levantar.
             </span>
           </h1>
 
-          <p className="mt-3.5 max-w-xl text-sm leading-relaxed text-[#F7F4EC]/80">
-            Plataforma tecnológica angolana para localizar caixas automáticos (ATM) e consultar reportes colaborativos de disponibilidade de numerário em Luanda.
+          <p className="mt-2 text-xs sm:text-sm text-[#F7F4EC]/80 max-w-lg leading-relaxed">
+            Plataforma colaborativa para encontrar caixas automáticos com notas disponíveis em Luanda.
           </p>
 
-          <div className="mt-7 flex w-full max-w-2xl flex-col gap-2.5 sm:flex-row">
-            <label className="relative min-w-0 flex-1">
-              <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+          {/* Campo de Pesquisa Destacado */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              onSearchSubmit(query);
+            }}
+            className="mt-6 flex w-full max-w-2xl flex-col sm:flex-row gap-2.5"
+          >
+            <div className="relative min-w-0 flex-1">
+              <Search
+                className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                aria-hidden="true"
+              />
               <Input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Onde pretendes levantar dinheiro em Luanda?"
-                aria-label="Pesquisar ATM por nome, banco ou bairro"
-                className="h-12 rounded-xl border-[#C09A5B]/30 bg-background/95 pl-10 text-foreground placeholder:text-muted-foreground focus:border-[#C09A5B]"
+                placeholder="Procure um ATM, banco ou localização..."
+                aria-label="Procure um ATM, banco ou localização"
+                className="h-12 rounded-xl border-[#C09A5B]/30 bg-background/95 pl-10 text-foreground placeholder:text-muted-foreground focus:border-[#C09A5B] text-xs sm:text-sm"
               />
-            </label>
+            </div>
             <Button
-              variant="secondary"
-              className="h-12 shrink-0 rounded-xl bg-gradient-to-r from-[#E2BE78] via-[#C09A5B] to-[#9E7638] px-5 text-[#1C2923] font-bold text-xs hover:brightness-110 shadow-sm gap-2"
-              onClick={onLocation}
+              type="submit"
+              className="h-12 shrink-0 rounded-xl bg-gradient-to-r from-[#E2BE78] via-[#C09A5B] to-[#9E7638] px-6 text-[#1C2923] font-bold text-xs hover:brightness-110 shadow-sm"
             >
-              <Crosshair className="size-4 text-[#1C2923]" aria-hidden="true" />
-              A minha localização
+              Pesquisar
             </Button>
-          </div>
+          </form>
           {locationMessage && (
             <p role="status" className="mt-2.5 text-xs text-[#C09A5B] font-medium">
               {locationMessage}
@@ -906,76 +1003,116 @@ function HomeView({
         </div>
       </section>
 
-      <div className="mb-7 grid grid-cols-2 gap-3 xl:grid-cols-4">
-        {counts.map(({ key, label, amount, icon: Icon }) => (
-          <div key={key} className="flex min-h-[102px] items-center gap-3 border border-border bg-card px-4 py-4 sm:px-5">
-            <span className={`flex size-10 shrink-0 items-center justify-center rounded-md ${statusCopy[key].className}`}>
-              <Icon className="size-[18px]" aria-hidden="true" />
-            </span>
-            <div className="min-w-0">
-              <p className="font-display text-2xl font-semibold leading-none">{amount}</p>
-              <p className="mt-1.5 text-xs leading-4 text-muted-foreground">{label}</p>
-            </div>
-          </div>
-        ))}
+      {/* 4 Acções Rápidas (Grid Minimalista e Visual) */}
+      <div className="mb-7 grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {/* 1. Explorar mapa */}
+        <button
+          type="button"
+          onClick={onMap}
+          className="group flex flex-col items-start p-4 sm:p-5 rounded-2xl border border-border bg-card hover:border-primary/50 hover:bg-secondary/40 transition-all duration-200 text-left shadow-xs hover:shadow-md cursor-pointer active:scale-[0.98]"
+        >
+          <span className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors mb-3">
+            <Map className="size-5" />
+          </span>
+          <span className="font-display text-sm font-bold text-foreground">
+            Explorar Mapa
+          </span>
+          <span className="text-[11px] text-muted-foreground mt-0.5">
+            Ver caixas por zona
+          </span>
+        </button>
+
+        {/* 2. ATM próximos */}
+        <button
+          type="button"
+          onClick={onLocation}
+          className="group flex flex-col items-start p-4 sm:p-5 rounded-2xl border border-[#C09A5B]/30 bg-card hover:border-[#C09A5B] hover:bg-[#C09A5B]/10 transition-all duration-200 text-left shadow-xs hover:shadow-md cursor-pointer active:scale-[0.98]"
+        >
+          <span className="flex size-11 items-center justify-center rounded-xl bg-[#C09A5B]/20 text-[#C09A5B] group-hover:bg-[#C09A5B] group-hover:text-[#1C2923] transition-colors mb-3">
+            <Crosshair className="size-5" />
+          </span>
+          <span className="font-display text-sm font-bold text-foreground">
+            ATM Próximos
+          </span>
+          <span className="text-[11px] text-[#C09A5B] font-semibold mt-0.5">
+            Radar GPS Luanda
+          </span>
+        </button>
+
+        {/* 3. Reportar ATM */}
+        <button
+          type="button"
+          onClick={onReport}
+          className="group flex flex-col items-start p-4 sm:p-5 rounded-2xl border border-border bg-card hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-all duration-200 text-left shadow-xs hover:shadow-md cursor-pointer active:scale-[0.98]"
+        >
+          <span className="flex size-11 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-600 group-hover:text-white transition-colors mb-3">
+            <PlusCircle className="size-5" />
+          </span>
+          <span className="font-display text-sm font-bold text-foreground">
+            Reportar ATM
+          </span>
+          <span className="text-[11px] text-muted-foreground mt-0.5">
+            Avisar sobre notas
+          </span>
+        </button>
+
+        {/* 4. Favoritos */}
+        <button
+          type="button"
+          onClick={onFavorites}
+          className="group flex flex-col items-start p-4 sm:p-5 rounded-2xl border border-border bg-card hover:border-rose-400/50 hover:bg-rose-500/5 transition-all duration-200 text-left shadow-xs hover:shadow-md cursor-pointer active:scale-[0.98]"
+        >
+          <span className="flex size-11 items-center justify-center rounded-xl bg-rose-500/10 text-rose-500 group-hover:bg-rose-500 group-hover:text-white transition-colors mb-3">
+            <Heart className="size-5" />
+          </span>
+          <span className="font-display text-sm font-bold text-foreground">
+            Favoritos
+          </span>
+          <span className="text-[11px] text-muted-foreground mt-0.5">
+            Caixas salvos & alertas
+          </span>
+        </button>
       </div>
 
-      {!hasSupabase && <div className="mb-6"><DemoNotice /></div>}
-
-      {/* Estatísticas de Disponibilidade por Banco (Últimas 24h) */}
-      <div className="mb-8">
-        <BankStats
-          atms={atmList}
-          selectedBank={selectedBank}
-          onSelectBank={setSelectedBank}
-        />
+      {/* Resumo Rápido de Estado (Discreto e em 1 Linha) */}
+      <div className="mb-6 flex flex-wrap items-center gap-2">
+        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-status-available/10 border border-status-available/20 text-xs font-semibold text-status-available">
+          <span className="size-2 rounded-full bg-status-available animate-pulse" />
+          {availableCount} Caixas com Dinheiro
+        </span>
+        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-status-empty/10 border border-status-empty/20 text-xs font-semibold text-status-empty">
+          <span className="size-2 rounded-full bg-status-empty" />
+          {noCashCount} Sem Notas
+        </span>
+        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#C09A5B]/10 border border-[#C09A5B]/20 text-xs font-semibold text-[#C09A5B]">
+          ⚡ {atmList.length} Caixas Verificados
+        </span>
       </div>
 
-      <section>
-        <div className="mb-4 flex items-end justify-between gap-3">
+      {/* Secção Resumida: Caixas com Dinheiro Confirmado */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0] text-primary">
-              {hasSupabase ? "ATM verificados" : "Amostras fictícias"}
-            </p>
-            <h2 className="mt-1 font-display text-xl font-semibold">
-              {hasSupabase ? "Reportes recentes" : "Reportes de demonstração"}
+            <h2 className="font-display text-lg sm:text-xl font-bold text-foreground">
+              Disponíveis Agora em Luanda
             </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Caixas confirmados com numerário recente por cidadãos.
+            </p>
           </div>
-          <Button variant="ghost" className="h-9 shrink-0 px-2 text-xs font-semibold text-primary" onClick={onMap}>
-            Abrir mapa <ChevronRight className="size-4" aria-hidden="true" />
+          <Button
+            variant="ghost"
+            className="h-8 px-2 text-xs font-bold text-primary hover:text-primary/80 gap-1"
+            onClick={onSearch}
+          >
+            Ver todos no menu Pesquisar
+            <ChevronRight className="size-3.5" />
           </Button>
         </div>
-        {/* Filtro rápido por banco */}
-        {bankOptions.length > 0 && (
-          <div className="mb-4 flex flex-wrap gap-2">
-            <button
-              onClick={() => setSelectedBank("all")}
-              className={`rounded-full px-3 py-1 text-xs font-semibold border transition-colors ${
-                selectedBank === "all"
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "border-border text-muted-foreground hover:bg-secondary"
-              }`}
-            >
-              Todos
-            </button>
-            {bankOptions.map((bank) => (
-              <button
-                key={bank}
-                onClick={() => setSelectedBank(bank)}
-                className={`rounded-full px-3 py-1 text-xs font-semibold border transition-colors ${
-                  selectedBank === bank
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "border-border text-muted-foreground hover:bg-secondary"
-                }`}
-              >
-                {bank}
-              </button>
-            ))}
-          </div>
-        )}
-        {visibleAtms.length ? (
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-2">
-            {visibleAtms.slice(0, 4).map((atm) => (
+
+        {confirmedWithCash.length > 0 ? (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {confirmedWithCash.map((atm) => (
               <AtmCard
                 key={atm.id}
                 atm={atm}
@@ -985,81 +1122,33 @@ function HomeView({
               />
             ))}
           </div>
-        ) : <EmptyResults />}
-      </section>
-
-      {/* Secção Explicativa e Participação Comunitária */}
-      <section className="mt-12 rounded-3xl border border-border bg-card p-6 sm:p-9 shadow-sm">
-        <div className="max-w-2xl">
-          <p className="text-xs font-bold uppercase tracking-wider text-[#C09A5B]">
-            Como Funciona
-          </p>
-          <h2 className="mt-1 font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            A força está na ligação.
-          </h2>
-          <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-            Uma trama é formada por elementos individuais que, quando ligados, criam uma estrutura mais forte. No Kusanga Kitadi, cada pessoa contribui com informação e cada reporte ajuda a comunidade a tomar melhores decisões.
-          </p>
-        </div>
-
-        <div className="mt-8 grid gap-4 sm:grid-cols-3">
-          <div className="rounded-2xl border border-border/80 bg-background/70 p-5">
-            <span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary font-display font-bold text-sm mb-3">
-              01
-            </span>
-            <h4 className="font-display font-bold text-base text-foreground">
-              Localiza no Mapa
-            </h4>
-            <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">
-              Pesquisa caixas automáticos por banco (BAI, BFA, Atlântico, etc.), município ou proximidade.
-            </p>
+        ) : (
+          <div className="rounded-2xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
+            Nenhum caixa com notas confirmado neste momento. Consulta o mapa para ver todos os pontos.
           </div>
+        )}
 
-          <div className="rounded-2xl border border-border/80 bg-background/70 p-5">
-            <span className="flex size-10 items-center justify-center rounded-xl bg-[#C09A5B]/15 text-[#C09A5B] font-display font-bold text-sm mb-3">
-              02
-            </span>
-            <h4 className="font-display font-bold text-base text-foreground">
-              Consulta a Disponibilidade
-            </h4>
-            <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">
-              Verifica se o caixa tem notas disponíveis ou se está fora de serviço antes de sair de casa.
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-border/80 bg-background/70 p-5">
-            <span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary font-display font-bold text-sm mb-3">
-              03
-            </span>
-            <h4 className="font-display font-bold text-base text-foreground">
-              Partilha com a Comunidade
-            </h4>
-            <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">
-              Após levantares, confirma com 1 clique se havia notas e apoia o próximo cidadão.
-            </p>
-          </div>
-        </div>
-
-        {/* Aviso de Transparência Institucional */}
-        <div className="mt-6 rounded-2xl border border-border/70 bg-secondary/30 p-4 text-xs text-muted-foreground flex items-start gap-3">
-          <ShieldCheck className="size-4 text-[#C09A5B] shrink-0 mt-0.5" />
-          <p className="leading-relaxed">
-            <strong className="text-foreground font-semibold">Nota de transparência:</strong> A informação sobre disponibilidade de numerário é gerada exclusivamente pela comunidade através de reportes participativos. Não constitui confirmação oficial dos bancos nem acesso a dados bancários internos.
-          </p>
+        <div className="pt-2 text-center">
+          <Button
+            variant="outline"
+            className="rounded-xl text-xs font-semibold px-6 border-border hover:border-primary"
+            onClick={onSearch}
+          >
+            Explorar Todos os {atmList.length} Caixas de Luanda
+            <ChevronRight className="size-3.5 ml-1" />
+          </Button>
         </div>
       </section>
 
-      {/* Rodapé Institucional */}
-      <footer className="mt-12 rounded-3xl border border-border/70 bg-card p-6 sm:p-8 text-xs text-muted-foreground">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-border/70">
-          <KusangaLogo variant="brand" size={36} theme="light" />
-          <KusangaSloganPill dark={false} />
-        </div>
-        <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px]">
-          <p>© {new Date().getFullYear()} KUSANGA KITADI · Plataforma Tecnológica Angolana.</p>
-          <p className="italic text-[#C09A5B] font-semibold">
-            A força está na ligação. Saiba onde levantar.
-          </p>
+      {/* Rodapé Discreto */}
+      <footer className="mt-10 border-t border-border pt-6 pb-2 text-xs text-muted-foreground">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+          <p>© {new Date().getFullYear()} KUSANGA KITADI · A força está na ligação.</p>
+          <div className="flex items-center gap-4 text-[11px]">
+            <span className="text-[#C09A5B] font-semibold">Luanda, Angola</span>
+            <span>·</span>
+            <span>Reportes Comunitários em Tempo Real</span>
+          </div>
         </div>
       </footer>
     </>

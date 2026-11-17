@@ -183,3 +183,49 @@
     font-family: var(--font-display);
   }
 }
+
+/* Transições e Animações Suaves de Secção */
+@keyframes sectionFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.section-fade-enter {
+  animation: sectionFadeIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .section-fade-enter,
+  .radar-glow,
+  .animate-ping,
+  .animate-spin {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
+/* Efeito Radar Pulso Suave */
+@keyframes radarPulse {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.2;
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+}
+
+.radar-glow {
+  animation: radarPulse 3s ease-in-out infinite;
+}

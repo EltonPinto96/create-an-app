@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth-context";
 import { supabase, hasSupabase } from "@/lib/supabase";
 import { KusangaSymbol } from "@/components/KusangaLogo";
+import { recordNewUserRegistration } from "@/lib/user-registration-notifications";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -164,6 +165,13 @@ export function AuthModal({
             setErrorMessage(error.message);
           }
         } else {
+          // Registar notificação de cadastro para os Administradores e Moderadores
+          recordNewUserRegistration({
+            userEmail: email.trim(),
+            userName: displayName.trim(),
+            provider: "email",
+          });
+
           if (requiresEmailConfirmation) {
             setSuccessMessage(
               "Conta criada! Enviámos um email de confirmação. Por favor, verifica a tua caixa de entrada."

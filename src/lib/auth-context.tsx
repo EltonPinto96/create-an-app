@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase, hasSupabase } from "./supabase";
+import { recordNewUserRegistration } from "./user-registration-notifications";
 
 export interface UserProfile {
   id: string;
@@ -65,6 +66,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             currentUser.user_metadata?.picture ||
             null,
         });
+      }
+
+      // 1.1 Se o utilizador se registou recentemente (Google OAuth ou Email), registar notificação
+      if (typeof window !== "undefined" && currentUser.email) {
+        const flagKey = `kusanga_registered_${currentUser.id}`;
+        if (!localStorage.getItem(flagKey)) {
+          localStorage.setItem(flagKey, "true");
+          const diffMs = Date.now() - new Date(currentUser.created_at || "").getTime();
+          if (diffMs < 1000 * 60 * 15) {
+            recordNewUserRegistration({
+              userId: currentUser.id,
+              userEmail: currentUser.email,
+              userName:
+                currentUser.user_metadata?.full_name ||
+                currentUser.user_metadata?.display_name ||
+                currentUser.email.split("@")[0],
+              provider: (currentUser.app_metadata?.provider as any) || "google",
+            });
+          }
+        }
       }
 
       // 2. Verificar se é admin

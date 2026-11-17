@@ -27,6 +27,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase, hasSupabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
+import {
+  fetchRegistrationNotifications,
+  markNotificationAsRead,
+  type UserRegistrationNotification,
+} from "@/lib/user-registration-notifications";
 
 export interface PendingAtmItem {
   id: string;
@@ -57,11 +62,12 @@ interface AdminPanelProps {
 
 export function AdminPanel({ onBackToApp }: AdminPanelProps) {
   const { user, isAdmin, isModerator } = useAuth();
-  const [tab, setTab] = useState<"pending" | "approved" | "banks" | "moderators">("pending");
+  const [tab, setTab] = useState<"pending" | "approved" | "banks" | "moderators" | "registrations">("pending");
   const [pendingAtms, setPendingAtms] = useState<PendingAtmItem[]>([]);
   const [approvedAtms, setApprovedAtms] = useState<PendingAtmItem[]>([]);
   const [banks, setBanks] = useState<{ id: string; name: string }[]>([]);
   const [moderators, setModerators] = useState<ModeratorItem[]>([]);
+  const [registrations, setRegistrations] = useState<UserRegistrationNotification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
@@ -137,6 +143,14 @@ export function AdminPanel({ onBackToApp }: AdminPanelProps) {
         } catch {
           // Tabela pode ainda estar por criar se a migração 002 não tiver sido corrida
         }
+      }
+
+      // 5. Carregar Notificações de Novos Cadastros
+      try {
+        const regData = await fetchRegistrationNotifications();
+        if (regData) setRegistrations(regData);
+      } catch {
+        // Fallback já tratado internamente
       }
     } catch (err: any) {
       console.error("Erro ao carregar dados do admin:", err);
@@ -428,6 +442,24 @@ export function AdminPanel({ onBackToApp }: AdminPanelProps) {
           ATMs Aprovados ({approvedAtms.length})
         </button>
 
+        {/* Aba: Notificações de Novos Cadastros (Admins e Moderadores) */}
+        <button
+          onClick={() => setTab("registrations")}
+          className={`border-b-2 px-4 py-2.5 text-xs font-semibold whitespace-nowrap flex items-center gap-1.5 transition-colors ${
+            tab === "registrations"
+              ? "border-[#C09A5B] text-[#C09A5B]"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <UserCheck className="size-3.5 text-[#C09A5B]" />
+          Novos Cadastros ({registrations.length})
+          {registrations.filter((r) => !r.read).length > 0 && (
+            <Badge className="bg-destructive text-white h-4 px-1.5 text-[9px] font-bold">
+              {registrations.filter((r) => !r.read).length} novos
+            </Badge>
+          )}
+        </button>
+
         {/* Abas Exclusivas de Administrador */}
         {isAdmin ? (
           <>
@@ -589,6 +621,110 @@ export function AdminPanel({ onBackToApp }: AdminPanelProps) {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Conteúdo da Aba: Novos Cadastros de Utilizadores */}
+      {tab === "registrations" && (
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-[#C09A5B]/30 bg-gradient-to-r from-[#26362F]/5 via-background to-[#C09A5B]/5 p-5">
+            <div className="flex items-start gap-3.5">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#C09A5B]/15 text-[#C09A5B]">
+                <UserCheck className="size-5" />
+              </span>
+              <div>
+                <h3 className="font-display text-base font-bold text-foreground">
+                  Registos de Novos Utilizadores
+                </h3>
+                <p className="text-xs text-muted-foreground mt-1 max-w-2xl leading-relaxed">
+                  Receba notificações sempre que um novo utilizador se registar na plataforma Kusanga Kitadi.
+                  Marque como lido para manter o controlo das novas adesões.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {registrations.length === 0 ? (
+            <div className="text-center py-12">
+              <UserCheck className="size-10 mx-auto text-muted-foreground/40 mb-3" />
+              <p className="text-sm text-muted-foreground font-medium">Nenhum cadastro registado ainda</p>
+              <p className="text-xs text-muted-foreground/70 mt-1">
+                Os novos registos aparecerão aqui automaticamente.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {registrations.map((reg) => (
+                <div
+                  key={reg.id}
+                  className={`rounded-xl border p-4 transition-all ${
+                    reg.read
+                      ? "border-border bg-background"
+                      : "border-[#C09A5B]/40 bg-[#C09A5B]/5 shadow-sm"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className={`flex size-9 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
+                        reg.read
+                          ? "bg-muted text-muted-foreground"
+                          : "bg-[#C09A5B]/20 text-[#C09A5B]"
+                      }`}>
+                        {(reg.userName || reg.userEmail || "U")[0].toUpperCase()}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-foreground truncate">
+                          {reg.userName || "Utilizador sem nome"}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">{reg.userEmail}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge
+                            variant="outline"
+                            className={`text-[10px] px-1.5 py-0 ${
+                              reg.provider === "google"
+                                ? "border-blue-400/50 text-blue-600"
+                                : "border-primary/30 text-primary"
+                            }`}
+                          >
+                            {reg.provider === "google" ? "Google" : "Email"}
+                          </Badge>
+                          <span className="text-[10px] text-muted-foreground">
+                            {new Date(reg.createdAt).toLocaleDateString("pt-AO", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {!reg.read && (
+                        <span className="size-2 rounded-full bg-[#C09A5B] animate-pulse" title="Novo" />
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 text-xs gap-1"
+                        onClick={async () => {
+                          await markNotificationAsRead(reg.id);
+                          setRegistrations((prev) =>
+                            prev.map((r) => (r.id === reg.id ? { ...r, read: true } : r))
+                          );
+                        }}
+                        disabled={reg.read}
+                      >
+                        <CheckSquare className="size-3.5" />
+                        {reg.read ? "Lido" : "Marcar lido"}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
