@@ -21,6 +21,8 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   UserRound,
+  LogIn,
+  LogOut,
   X,
 } from "lucide-react";
 
@@ -38,6 +40,8 @@ import { useApprovedAtms } from "@/lib/atm-queries";
 import { supabase } from "@/lib/supabase";
 import { AdminPanel } from "@/components/AdminPanel";
 import { InteractiveMap } from "@/components/InteractiveMap";
+import { useAuth } from "@/lib/auth-context";
+import { AuthModal } from "@/components/AuthModal";
 
 type Section = "home" | "map" | "search" | "favorites" | "profile" | "admin";
 type Filter = "all" | DemoAvailability;
@@ -84,6 +88,7 @@ const statusCopy: Record<DemoAvailability, { label: string; className: string }>
 };
 
 function Index() {
+  const { user, profile, isAdmin } = useAuth();
   const [section, setSection] = useState<Section>("home");
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
@@ -92,6 +97,13 @@ function Index() {
   const [showInfo, setShowInfo] = useState(false);
   const [showSubmitAtm, setShowSubmitAtm] = useState(false);
   const [reportingAtm, setReportingAtm] = useState<RealAtm | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState<"login" | "register">("login");
+
+  function openAuth(mode: "login" | "register" = "login") {
+    setAuthModalMode(mode);
+    setShowAuthModal(true);
+  }
 
   const { data: dbAtms } = useApprovedAtms();
 
@@ -197,6 +209,7 @@ function Index() {
             lat: -8.83833,
             lng: 13.23444,
             status: "pending",
+            created_by: user?.id || null,
           });
 
           if (error) {
@@ -220,6 +233,7 @@ function Index() {
             availability: data.availability,
             confirmed_at: data.confirmedAt,
             source: data.feedbackSummary,
+            reported_by: user?.id || null,
           });
           if (error) {
             console.warn("Aviso ao guardar reporte no Supabase (RLS):", error.message);
@@ -289,14 +303,30 @@ function Index() {
               <ShieldCheck className="size-3.5" aria-hidden="true" />
               Moderação
             </Button>
-            <Button
-              variant="outline"
-              className="hidden h-9 rounded-md px-3 text-xs sm:inline-flex"
-              onClick={() => setSection("profile")}
-            >
-              <UserRound className="size-4" aria-hidden="true" />
-              Entrar em breve
-            </Button>
+            {user ? (
+              <Button
+                variant="outline"
+                className="hidden h-9 rounded-md px-3 text-xs sm:inline-flex items-center gap-2 border-primary/30 text-foreground hover:bg-secondary"
+                onClick={() => setSection("profile")}
+                title="Aceder ao perfil"
+              >
+                <span className="flex size-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                  {(profile?.display_name || user.email || "U")[0].toUpperCase()}
+                </span>
+                <span className="max-w-[110px] truncate">
+                  {profile?.display_name || user.email?.split("@")[0]}
+                </span>
+              </Button>
+            ) : (
+              <Button
+                variant="default"
+                className="hidden h-9 rounded-md px-3 text-xs sm:inline-flex font-semibold"
+                onClick={() => openAuth("login")}
+              >
+                <LogIn className="size-3.5 mr-1" aria-hidden="true" />
+                Entrar
+              </Button>
+            )}
           </div>
         </header>
 
@@ -342,6 +372,7 @@ function Index() {
               onShowInfo={() => setShowInfo(true)}
               onSubmitAtm={() => setShowSubmitAtm(true)}
               onOpenAdmin={() => setSection("admin")}
+              onOpenAuth={openAuth}
             />
           )}
           {section === "admin" && (
@@ -435,6 +466,12 @@ function Index() {
               </section>
             </div>
           )}
+          {/* Modal de Autenticação (Login / Registo) */}
+          <AuthModal
+            isOpen={showAuthModal}
+            onClose={() => setShowAuthModal(false)}
+            defaultMode={authModalMode}
+          />
         </main>
       </div>
 
@@ -708,14 +745,109 @@ function ProfileView({
   onShowInfo,
   onSubmitAtm,
   onOpenAdmin,
+  onOpenAuth,
 }: {
   onShowInfo: () => void;
   onSubmitAtm: () => void;
   onOpenAdmin: () => void;
+  onOpenAuth: (mode: "login" | "register") => void;
 }) {
+  const { user, profile, isAdmin, signOut, loading } = useAuth();
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  async function handleLogout() {
+    setLoggingOut(true);
+    await signOut();
+    setLoggingOut(false);
+  }
+
+  const displayName = profile?.display_name || user?.email?.split("@")[0] || "Cidadão";
+  const initials = displayName
+    .split(" ")
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase() || "U";
+
   return (
     <>
-      <PageHeading eyebrow="A tua conta" title="Perfil" text="Acede ao teu perfil, contribuições e preferências." />
+      <PageHeading eyebrow="A tua conta" title="Perfil" text="Gere a tua conta, contribuições comunitárias e preferências." />
+
+      {/* Cartão de Utilizador Autenticado ou Visitante */}
+      {user ? (
+        <div className="mb-6 rounded-xl border border-border bg-card p-5 sm:p-6 shadow-sm">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground font-bold text-lg shadow-sm">
+                {initials}
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-bold text-foreground">{displayName}</h3>
+                  <Badge variant="outline" className="border-status-available/30 text-status-available text-[10px]">
+                    Sessão ativa
+                  </Badge>
+                  {isAdmin && (
+                    <Badge variant="outline" className="border-primary/30 text-primary text-[10px]">
+                      Admin
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">{user.email}</p>
+                <p className="text-[11px] text-muted-foreground/80 mt-1">
+                  Membro da rede colaborativa ATM KOTA
+                </p>
+              </div>
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleLogout}
+              disabled={loggingOut}
+              className="rounded-lg text-xs gap-1.5 text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/20"
+            >
+              <LogOut className="size-3.5" />
+              {loggingOut ? "A terminar..." : "Terminar sessão"}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="mb-6 rounded-xl border border-primary/20 bg-primary/5 p-6 shadow-sm">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-3.5">
+              <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+                <UserRound className="size-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-foreground">Entra na comunidade ATM KOTA</h3>
+                <p className="text-xs text-muted-foreground mt-1 max-w-md">
+                  Cria uma conta ou inicia sessão para submeter novos ATMs de Luanda, reportar disponibilidade de dinheiro e guardar os teus favoritos.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onOpenAuth("login")}
+                className="flex-1 sm:flex-initial text-xs font-semibold"
+              >
+                <LogIn className="mr-1.5 size-3.5" />
+                Iniciar Sessão
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => onOpenAuth("register")}
+                className="flex-1 sm:flex-initial text-xs font-semibold"
+              >
+                Criar Conta
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Secção: Painel de Moderação (Admin) */}
       <div className="mb-6 rounded-lg border border-primary/25 bg-primary/5 p-5 sm:p-6">
@@ -760,20 +892,10 @@ function ProfileView({
         </div>
       </div>
 
-      {/* Conta ainda não disponível */}
-      <div className="grid min-h-[280px] place-items-center border border-border bg-card px-5 py-10 text-center">
-        <div className="max-w-md">
-          <span className="mx-auto flex size-14 items-center justify-center rounded-md bg-secondary text-primary">
-            <UserRound className="size-6" aria-hidden="true" />
-          </span>
-          <h2 className="mt-4 font-display text-xl font-semibold">Conta disponível numa próxima etapa</h2>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            O registo, início de sessão e perfil pessoal serão ligados numa próxima etapa. Ainda não aceitamos palavras-passe neste ecrã.
-          </p>
-          <Button variant="ghost" className="mt-4 text-xs text-muted-foreground" onClick={onShowInfo}>
-            Ver estado da demonstração
-          </Button>
-        </div>
+      <div className="rounded-lg border border-border bg-card p-5 text-center">
+        <Button variant="ghost" className="text-xs text-muted-foreground" onClick={onShowInfo}>
+          Ver avisos e notas do piloto
+        </Button>
       </div>
     </>
   );
