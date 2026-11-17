@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-11-17T08:20:46.350Z",
+  "updated_at": "2026-11-17T08:25:14.874Z",
   "messages": [
     {
       "role": "user",
@@ -71,6 +71,15 @@
     {
       "role": "assistant",
       "text": "Sim, pode enviar. Para cadastrar o primeiro ATM, passe:\n\n- **Banco e identificação** do ATM, se souber\n- **Endereço**, município e bairro\n- **Coordenadas** ou um ponto de referência, se tiver\n- **Disponibilidade**: tem dinheiro, não tem dinheiro ou está fora de serviço\n- **Data e hora** em que confirmou\n- **Origem da informação**: observação presencial ou outra\n\nVou tratar esse primeiro registo como dado real informado por si. Para a plataforma, a regra pode ser: o ATM e o reporte ficam pendentes até aprovação do administrador; depois de aprovado, a disponibilidade fica visível por duas horas."
+    },
+    {
+      "role": "user",
+      "text": "Banco e identificação do ATM: Banco Atlâtico , ATM Center MDC\n\nEndereço, município e bairro: Bairro Kicuxi, Avenida Fidel de Castro Ruz - MDC Shopping Via Express\n\nCoordenadas ou um ponto de referência: https://maps.app.goo.gl/2fayq3ih5s2GgyoX6\n\nDisponibilidade: tem dinheiro\nData e hora em que confirmou: 17/11/2026 / 09:24\n\nOrigem da informação: observação presencial",
+      "attachments": []
+    },
+    {
+      "role": "assistant",
+      "text": "Anotado como o primeiro registo real informado por si:\n\n- **Banco:** Banco Atlântico\n- **ATM:** ATM Center MDC\n- **Localização:** MDC Shopping Via Express, Avenida Fidel de Castro Ruz, bairro Kicuxi\n- **Coordenadas:** referência do Google Maps enviada\n- **Disponibilidade:** tem dinheiro\n- **Confirmado em:** 17/11/2026 às 09:24\n- **Origem:** observação presencial\n\nComo definiu, o registo deve ficar visível após aprovação de um administrador e a disponibilidade expira duas horas depois da confirmação. Não consigo cadastrar ou aprovar o ATM na plataforma nesta conversa."
     }
   ]
 }
