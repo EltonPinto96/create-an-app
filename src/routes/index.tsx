@@ -47,6 +47,7 @@ import { BankStats } from "@/components/BankStats";
 import { useFavoriteNotifications } from "@/lib/use-favorite-notifications";
 import { NotificationsModal } from "@/components/NotificationsModal";
 import { KusangaLogo, KusangaSymbol, KusangaSloganPill } from "@/components/KusangaLogo";
+import { NearbyAtmsModal } from "@/components/NearbyAtmsModal";
 
 type Section = "home" | "map" | "search" | "favorites" | "profile" | "admin";
 type Filter = "all" | DemoAvailability;
@@ -106,6 +107,10 @@ function Index() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<"login" | "register">("login");
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
+  const [showNearbyModal, setShowNearbyModal] = useState(false);
+  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
+  const [locationLabel, setLocationLabel] = useState<string>("Localização GPS");
 
   function openAuth(mode: "login" | "register" = "login") {
     setAuthModalMode(mode);
@@ -194,18 +199,37 @@ function Index() {
   }, [filter, query, selectedBank, selectedMunicipality, atmList]);
 
   function useLocation() {
+    setIsLocating(true);
+    setLocationMessage("A obter a tua localização em tempo real...");
+
     if (!navigator.geolocation) {
-      setLocationMessage("A localização não está disponível neste dispositivo.");
+      setLocationMessage("A geolocalização não está disponível. A usar referência em Luanda (Mutamba).");
+      setUserCoords({ lat: -8.8145, lng: 13.2301 });
+      setLocationLabel("Mutamba (Centro) · Luanda");
+      setIsLocating(false);
+      setShowNearbyModal(true);
       return;
     }
-    setLocationMessage("A pedir autorização para usar a tua localização…");
+
     navigator.geolocation.getCurrentPosition(
-      () =>
-        setLocationMessage(
-          "Localização autorizada. Os exemplos de demonstração não usam a tua posição.",
-        ),
-      () => setLocationMessage("Sem localização? Podes pesquisar manualmente."),
-      { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 },
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        setUserCoords({ lat: latitude, lng: longitude });
+        setIsLocating(false);
+        setLocationLabel("Localização GPS Detetada");
+        setLocationMessage("Localização confirmada! A calcular caixas mais próximos...");
+        setShowNearbyModal(true);
+      },
+      (err) => {
+        console.warn("Geolocalização não autorizada ou indisponível:", err);
+        setIsLocating(false);
+        // Fallback elegante para ponto central de Luanda (Mutamba) para sempre exibir resultados reais
+        setUserCoords({ lat: -8.8145, lng: 13.2301 });
+        setLocationLabel("Mutamba (Centro) · Luanda");
+        setLocationMessage("Sinal GPS indisponível. A apresentar caixas mais próximos a partir da Mutamba.");
+        setShowNearbyModal(true);
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
     );
   }
 
@@ -326,6 +350,15 @@ function Index() {
               {hasSupabase ? "Dados reais" : "Pré-lançamento"}
             </Badge>
             <Button
+              variant="outline"
+              className="h-9 rounded-md px-3 text-xs gap-1.5 border-[#C09A5B]/50 text-[#C09A5B] hover:bg-[#C09A5B]/10 font-bold inline-flex"
+              onClick={useLocation}
+              title="Ver ATMs mais próximos com base na sua localização"
+            >
+              <Crosshair className={`size-3.5 ${isLocating ? "animate-spin" : ""}`} aria-hidden="true" />
+              <span className="hidden md:inline">Perto de Mim</span>
+            </Button>
+            <Button
               variant="ghost"
               size="icon"
               className="relative size-10 rounded-full"
@@ -427,7 +460,7 @@ function Index() {
               municipalityOptions={municipalityOptions}
             />
           )}
-          {section === "map" && <MapView atms={atmList} onSelect={setSelectedAtm} />}
+          {section === "map" && <MapView atms={atmList} onSelect={setSelectedAtm} onOpenNearby={useLocation} />}
           {section === "favorites" && (
             <FavoritesView
               atms={atmList}
@@ -557,6 +590,29 @@ function Index() {
             favoriteAtms={atmList.filter((a) => favoriteIds.includes(a.id))}
             onSimulateChange={simulateStatusChange}
             onSelectAtm={setSelectedAtm}
+          />
+          {/* Modal de ATMs Mais Próximos com Disponibilidade */}
+          <NearbyAtmsModal
+            isOpen={showNearbyModal}
+            onClose={() => setShowNearbyModal(false)}
+            userCoords={userCoords}
+            isLocating={isLocating}
+            atms={atmList}
+            onSelectAtm={(atm) => {
+              setSelectedAtm(atm);
+              setShowNearbyModal(false);
+            }}
+            onViewOnMap={(atm) => {
+              setSection("map");
+              setSelectedAtm(atm);
+              setShowNearbyModal(false);
+            }}
+            onRequestLocation={useLocation}
+            onSetCustomCoords={({ lat, lng, label }) => {
+              setUserCoords({ lat, lng });
+              setLocationLabel(label);
+            }}
+            locationLabel={locationLabel}
           />
         </main>
       </div>
@@ -1014,9 +1070,11 @@ function SearchView({
 function MapView({
   atms,
   onSelect,
+  onOpenNearby,
 }: {
   atms: AtmData[];
   onSelect: (atm: AtmData) => void;
+  onOpenNearby?: () => void;
 }) {
   return (
     <>
@@ -1025,7 +1083,7 @@ function MapView({
         title="Mapa de Caixas em Luanda"
         text="A força está na ligação. Consulta a disponibilidade de numerário em tempo real, traça rota até ao caixa mais próximo ou avalia a tua experiência."
       />
-      <InteractiveMap atms={atms} onSelectAtm={onSelect} />
+      <InteractiveMap atms={atms} onSelectAtm={onSelect} onOpenNearby={onOpenNearby} />
     </>
   );
 }

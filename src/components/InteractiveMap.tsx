@@ -23,6 +23,7 @@ type AtmItem = RealAtm | DemoAtm;
 interface InteractiveMapProps {
   atms: AtmItem[];
   onSelectAtm: (atm: AtmItem) => void;
+  onOpenNearby?: () => void;
 }
 
 // Cálculo de distância haversine em km
@@ -45,7 +46,7 @@ function calculateDistanceKm(
   return R * c;
 }
 
-export function InteractiveMap({ atms, onSelectAtm }: InteractiveMapProps) {
+export function InteractiveMap({ atms, onSelectAtm, onOpenNearby }: InteractiveMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markersLayerRef = useRef<any>(null);
@@ -340,6 +341,17 @@ export function InteractiveMap({ atms, onSelectAtm }: InteractiveMapProps) {
             />
             {locating ? "A localizar..." : "Onde estou"}
           </Button>
+
+          {onOpenNearby && (
+            <Button
+              size="sm"
+              className="h-8 gap-1.5 text-xs font-bold bg-[#26362F] text-white hover:bg-[#26362F]/90 shadow-xs"
+              onClick={onOpenNearby}
+            >
+              <Navigation className="size-3 text-[#C09A5B]" />
+              Mais Próximos
+            </Button>
+          )}
         </div>
       </div>
 
