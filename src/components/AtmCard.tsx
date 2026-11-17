@@ -1,45 +1,95 @@
-import { Banknote, ChevronRight, Clock3, ExternalLink, Heart } from "lucide-react";
+import {
+  Banknote,
+  ChevronRight,
+  Clock3,
+  ExternalLink,
+  Heart,
+  CheckCircle2,
+  AlertTriangle,
+  XCircle,
+  HelpCircle,
+  ShieldCheck,
+  Check,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { type DemoAtm, type DemoAvailability } from "@/lib/atm-demo-data";
 import { openInGoogleMaps, buildMapsUrl } from "@/lib/google-maps";
 
-// ---- Tipos compatíveis com dados reais do Supabase ----
 export type AtmAvailability = DemoAvailability | "pending";
 
 export interface RealAtm {
   id: string;
   name: string;
   bank: string;
-  /** ex: "Kicuxi · Luanda" */
   area: string;
   availability: AtmAvailability;
-  /** Texto legível: "há 12 min", "há 1 h" */
   updated: string;
   confirmations: number;
-  /** true = dado real do Supabase; false = dado de demonstração */
   isReal?: boolean;
-  /** Coordenadas (apenas dados reais) */
   lat?: number;
   lng?: number;
-  /** URL directa do Google Maps (se disponível no registo Supabase) */
   maps_url?: string;
-  /** Tempo até expiração: "expira em 47 min" */
   expiresIn?: string;
+  operationalStatus?: "operational" | "out-of-service";
 }
 
 type AtmCardData = DemoAtm | RealAtm;
 
 function isDemoAtm(atm: AtmCardData): atm is DemoAtm {
-  return !("isReal" in atm) || (atm as RealAtm).isReal === false || (atm as RealAtm).isReal === undefined;
+  return (
+    !("isReal" in atm) ||
+    (atm as RealAtm).isReal === false ||
+    (atm as RealAtm).isReal === undefined
+  );
 }
 
-const statusCopy: Record<AtmAvailability, { label: string; className: string }> = {
-  available: { label: "Reportado com dinheiro", className: "status-available" },
-  "no-cash": { label: "Reportado sem dinheiro", className: "status-empty" },
-  "out-of-service": { label: "Fora de serviço", className: "status-offline" },
-  stale: { label: "Informação desactualizada", className: "status-stale" },
-  pending: { label: "Aguarda aprovação", className: "status-stale" },
+// Configuração de estado funcional
+const statusMeta: Record<
+  AtmAvailability,
+  {
+    cashLabel: string;
+    opLabel: string;
+    className: string;
+    badgeClass: string;
+    icon: typeof CheckCircle2;
+  }
+> = {
+  available: {
+    cashLabel: "Reportado com dinheiro",
+    opLabel: "Operacional",
+    className: "status-available",
+    badgeClass: "text-status-available bg-status-available/10 border-status-available/30",
+    icon: CheckCircle2,
+  },
+  "no-cash": {
+    cashLabel: "Reportado sem notas",
+    opLabel: "Operacional (sem dinheiro)",
+    className: "status-empty",
+    badgeClass: "text-status-empty bg-status-empty/10 border-status-empty/30",
+    icon: AlertTriangle,
+  },
+  "out-of-service": {
+    cashLabel: "Indisponível",
+    opLabel: "Fora de serviço / Avaria",
+    className: "status-offline",
+    badgeClass: "text-status-offline bg-status-offline/10 border-status-offline/30",
+    icon: XCircle,
+  },
+  stale: {
+    cashLabel: "Sem informação recente",
+    opLabel: "Estado incerto",
+    className: "status-stale",
+    badgeClass: "text-status-stale bg-status-stale/10 border-status-stale/30",
+    icon: HelpCircle,
+  },
+  pending: {
+    cashLabel: "A aguardar moderação",
+    opLabel: "Em verificação",
+    className: "status-stale",
+    badgeClass: "text-status-stale bg-status-stale/10 border-status-stale/30",
+    icon: Clock3,
+  },
 };
 
 interface AtmCardProps {
@@ -49,10 +99,16 @@ interface AtmCardProps {
   onToggleFavorite?: (e: React.MouseEvent) => void;
 }
 
-export function AtmCard({ atm, onClick, isFavorite, onToggleFavorite }: AtmCardProps) {
-  const status = statusCopy[atm.availability] ?? statusCopy.stale;
+export function AtmCard({
+  atm,
+  onClick,
+  isFavorite,
+  onToggleFavorite,
+}: AtmCardProps) {
+  const meta = statusMeta[atm.availability] ?? statusMeta.stale;
   const isDemo = isDemoAtm(atm);
   const real = atm as RealAtm;
+  const StatusIcon = meta.icon;
 
   function handleMapsClick(e: React.MouseEvent) {
     e.stopPropagation();
@@ -68,91 +124,126 @@ export function AtmCard({ atm, onClick, isFavorite, onToggleFavorite }: AtmCardP
   }
 
   return (
-    <button
-      type="button"
-      className="group flex w-full items-center gap-4 border border-border bg-card p-4 text-left transition-colors hover:border-primary/40 sm:p-5"
+    <div
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      className="group relative flex w-full flex-col justify-between rounded-2xl border border-border bg-card p-4 sm:p-5 text-left transition-all duration-200 hover:border-[#C09A5B]/60 hover:shadow-md cursor-pointer"
       onClick={onClick}
     >
-      <span className={`flex size-11 shrink-0 items-center justify-center rounded-md ${status.className}`}>
-        <Banknote className="size-5" aria-hidden="true" />
-      </span>
-
-      <span className="min-w-0 flex-1">
-        {/* Nome + badge */}
-        <span className="flex flex-wrap items-center gap-2">
-          <span className="truncate font-semibold">{atm.name}</span>
-          {isDemo ? (
-            <span className="rounded-sm border border-border px-1.5 py-0.5 text-[9px] font-medium uppercase text-muted-foreground">
-              Exemplo
+      <div>
+        {/* Topo do cartão: Banco + Verificação + Favorito */}
+        <div className="flex items-center justify-between gap-2 mb-2.5">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold uppercase tracking-wider text-[#C09A5B]">
+              {atm.bank}
             </span>
-          ) : (
-            <Badge variant="outline" className="rounded-sm border-primary/30 px-1.5 py-0.5 text-[9px] font-medium uppercase text-primary">
-              Verificado
-            </Badge>
-          )}
-        </span>
+            {isDemo ? (
+              <span className="rounded-full border border-border px-2 py-0.5 text-[9px] font-semibold uppercase text-muted-foreground">
+                Exemplo
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 rounded-full border border-primary/25 bg-primary/5 px-2 py-0.5 text-[9px] font-semibold text-primary">
+                <ShieldCheck className="size-2.5 text-[#C09A5B]" />
+                Validado
+              </span>
+            )}
+          </div>
 
-        {/* Banco · Zona */}
-        <span className="mt-1 block truncate text-xs text-muted-foreground">
-          {atm.bank} · {atm.area}
-        </span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="size-8 rounded-full text-muted-foreground hover:text-[#C09A5B] hover:bg-secondary/70 -mr-1 -mt-1"
+            aria-label={isFavorite ? "Remover dos favoritos" : "Guardar nos favoritos"}
+            onClick={handleFavClick}
+          >
+            <Heart
+              className={`size-4 transition-transform duration-200 active:scale-125 ${
+                isFavorite
+                  ? "fill-[#C09A5B] text-[#C09A5B]"
+                  : "text-muted-foreground hover:text-[#C09A5B]"
+              }`}
+            />
+          </Button>
+        </div>
 
-        {/* Estado + tempo */}
-        <span className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-          <span className={`font-medium ${status.className}`}>{status.label}</span>
-          <span className="text-muted-foreground">{atm.updated}</span>
-          {!isDemo && real.expiresIn && (
-            <span className="flex items-center gap-1 text-muted-foreground">
-              <Clock3 className="size-3" aria-hidden="true" />
-              {real.expiresIn}
+        {/* Nome do ATM */}
+        <h3 className="font-display font-bold text-base text-foreground group-hover:text-primary transition-colors leading-snug">
+          {atm.name}
+        </h3>
+
+        {/* Bairro e Localização */}
+        <p className="mt-1 text-xs text-muted-foreground line-clamp-1">
+          {atm.area}
+        </p>
+
+        {/* Separador subtil */}
+        <div className="my-3 border-t border-border/60" />
+
+        {/* Estados separados: Numerário vs Operacional */}
+        <div className="grid grid-cols-2 gap-2 text-[11px]">
+          {/* Disponibilidade de numerário */}
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span
+              className={`flex size-6 shrink-0 items-center justify-center rounded-lg border ${meta.badgeClass}`}
+            >
+              <StatusIcon className="size-3.5" />
             </span>
-          )}
+            <div className="min-w-0">
+              <span className="block text-[10px] text-muted-foreground font-medium">
+                Numerário
+              </span>
+              <span className="block truncate font-bold text-foreground">
+                {meta.cashLabel}
+              </span>
+            </div>
+          </div>
+
+          {/* Estado operacional do equipamento */}
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span
+              className={`flex size-6 shrink-0 items-center justify-center rounded-lg border ${
+                atm.availability === "out-of-service"
+                  ? "text-status-offline bg-status-offline/10 border-status-offline/30"
+                  : "text-status-available bg-status-available/10 border-status-available/30"
+              }`}
+            >
+              {atm.availability === "out-of-service" ? (
+                <XCircle className="size-3.5" />
+              ) : (
+                <Check className="size-3.5" />
+              )}
+            </span>
+            <div className="min-w-0">
+              <span className="block text-[10px] text-muted-foreground font-medium">
+                Equipamento
+              </span>
+              <span className="block truncate font-semibold text-foreground">
+                {atm.availability === "out-of-service" ? "Fora de serviço" : "Operacional"}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Rodapé do cartão: Tempo de atualização e CTA */}
+      <div className="mt-3.5 flex items-center justify-between pt-2.5 border-t border-border/50 text-[11px] text-muted-foreground">
+        <span className="flex items-center gap-1">
+          <Clock3 className="size-3 text-muted-foreground/80" />
+          {atm.updated}
         </span>
-      </span>
 
-      {/* Botão de Favorito */}
-      {onToggleFavorite && (
-        <span
-          role="button"
-          tabIndex={0}
-          className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-red-500 transition-colors"
-          aria-label={isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
-          title={isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
-          onClick={handleFavClick}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              e.stopPropagation();
-              onToggleFavorite(e as any);
-            }
-          }}
-        >
-          <Heart
-            className={`size-4 transition-transform active:scale-125 ${
-              isFavorite ? "fill-red-500 text-red-500" : "text-muted-foreground"
-            }`}
-          />
-        </span>
-      )}
-
-      {/* Botão Google Maps (só dados reais) */}
-      {!isDemo && real.lat !== undefined && (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-8 shrink-0 text-muted-foreground hover:text-primary"
-          aria-label="Ver no Google Maps"
-          title="Ver no Google Maps"
-          onClick={handleMapsClick}
-        >
-          <ExternalLink className="size-4" aria-hidden="true" />
-        </Button>
-      )}
-
-      <ChevronRight
-        className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"
-        aria-hidden="true"
-      />
-    </button>
+        <div className="flex items-center gap-1.5 text-primary font-bold text-xs group-hover:text-[#C09A5B] transition-colors">
+          <span>Ver detalhes</span>
+          <ChevronRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+        </div>
+      </div>
+    </div>
   );
 }

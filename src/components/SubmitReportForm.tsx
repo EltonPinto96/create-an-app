@@ -156,11 +156,11 @@ export function SubmitReportForm({
   return (
     <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-5">
       {/* Cabeçalho do ATM */}
-      <div className="rounded-md border border-border bg-card p-3.5">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-primary">
-          Confirmar e Avaliar
+      <div className="rounded-2xl border border-border bg-card p-4">
+        <p className="text-[11px] font-bold uppercase tracking-wider text-[#C09A5B]">
+          Confirmar e Avaliar Caixa
         </p>
-        <p className="mt-0.5 text-base font-semibold text-foreground">{atmName}</p>
+        <p className="mt-0.5 font-display text-base font-bold text-foreground">{atmName}</p>
         <p className="text-xs text-muted-foreground">
           {atmBank} {atmArea ? `· ${atmArea}` : ""}
         </p>
@@ -302,30 +302,30 @@ export function SubmitReportForm({
       </div>
 
       {/* Aviso comunitário de expiração */}
-      <div className="flex items-start gap-2.5 rounded-md border border-primary/20 bg-primary/5 p-3 text-xs leading-5 text-muted-foreground">
-        <Clock className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+      <div className="flex items-start gap-2.5 rounded-2xl border border-[#C09A5B]/30 bg-[#C09A5B]/5 p-3.5 text-xs leading-5 text-muted-foreground">
+        <Clock className="mt-0.5 size-4 shrink-0 text-[#C09A5B]" aria-hidden="true" />
         <p>
-          A tua avaliação ficará ativa por <strong className="text-foreground">2 horas</strong> e atualiza imediatamente o estado para quem estiver a caminho.
+          A tua avaliação colaborativa ficará ativa por <strong className="text-foreground font-bold">2 horas</strong> e atualiza imediatamente o estado para a comunidade.
         </p>
       </div>
 
       {serverError && (
-        <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
+        <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
           {serverError}
         </div>
       )}
 
       {/* Botões de Ação */}
-      <div className="flex gap-2 pt-2">
+      <div className="flex gap-2.5 pt-2">
         {onCancel && (
-          <Button type="button" variant="outline" className="flex-1 rounded-md" onClick={onCancel}>
+          <Button type="button" variant="outline" className="flex-1 h-11 rounded-xl text-xs font-semibold" onClick={onCancel}>
             Voltar
           </Button>
         )}
         <Button
           type="submit"
           disabled={isSubmitting}
-          className="flex-1 rounded-md bg-primary font-semibold text-primary-foreground"
+          className="flex-1 h-11 rounded-xl bg-primary font-bold text-xs text-primary-foreground hover:bg-primary/90 shadow-sm"
         >
           {isSubmitting ? (
             <>
@@ -336,6 +336,10 @@ export function SubmitReportForm({
             "Enviar confirmação"
           )}
         </Button>
+      </div>
+
+      <div className="text-center text-[10px] text-muted-foreground italic pt-1">
+        A força está na ligação. Saiba onde levantar.
       </div>
     </form>
   );

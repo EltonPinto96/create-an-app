@@ -8,16 +8,20 @@ import {
   Mail,
   User,
   X,
+  ArrowLeft,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth-context";
+import { supabase } from "@/lib/supabase";
+import { KusangaSymbol } from "@/components/KusangaLogo";
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  defaultMode?: "login" | "register";
+  defaultMode?: "login" | "register" | "recovery";
 }
 
 export function AuthModal({
@@ -26,7 +30,7 @@ export function AuthModal({
   defaultMode = "login",
 }: AuthModalProps) {
   const { signIn, signUp } = useAuth();
-  const [mode, setMode] = useState<"login" | "register">(defaultMode);
+  const [mode, setMode] = useState<"login" | "register" | "recovery">(defaultMode);
 
   // Campos do formulário
   const [email, setEmail] = useState("");
@@ -49,18 +53,49 @@ export function AuthModal({
     setSuccessMessage(null);
   }
 
-  function handleSwitchMode(newMode: "login" | "register") {
+  function handleSwitchMode(newMode: "login" | "register" | "recovery") {
     setMode(newMode);
     setErrorMessage(null);
     setSuccessMessage(null);
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handlePasswordRecovery(e: React.FormEvent) {
     e.preventDefault();
     setErrorMessage(null);
     setSuccessMessage(null);
 
-    // Validações básicas
+    if (!email.trim() || !email.includes("@")) {
+      setErrorMessage("Introduz um endereço de email válido para recuperar a palavra-passe.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: typeof window !== "undefined" ? window.location.origin : undefined,
+      });
+
+      if (error) {
+        setErrorMessage(error.message);
+      } else {
+        setSuccessMessage("Instruções de recuperação enviadas para o teu email.");
+      }
+    } catch (err: any) {
+      setErrorMessage(err?.message || "Ocorreu um erro ao pedir recuperação.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (mode === "recovery") {
+      return handlePasswordRecovery(e);
+    }
+
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
     if (!email.trim() || !email.includes("@")) {
       setErrorMessage("Por favor, introduz um endereço de email válido.");
       return;
@@ -71,11 +106,9 @@ export function AuthModal({
       return;
     }
 
-    if (mode === "register") {
-      if (password !== confirmPassword) {
-        setErrorMessage("As palavras-passe não coincidem.");
-        return;
-      }
+    if (mode === "register" && password !== confirmPassword) {
+      setErrorMessage("As palavras-passe não coincidem.");
+      return;
     }
 
     setLoading(true);
@@ -105,7 +138,7 @@ export function AuthModal({
 
         if (error) {
           if (error.message.includes("User already registered")) {
-            setErrorMessage("Já existe uma conta registada com este endereço de email.");
+            setErrorMessage("Já existe uma conta com este email. Experimenta iniciar sessão.");
           } else {
             setErrorMessage(error.message);
           }
@@ -115,7 +148,7 @@ export function AuthModal({
               "Conta criada! Enviámos um email de confirmação. Por favor, verifica a tua caixa de entrada."
             );
           } else {
-            setSuccessMessage("Conta criada com sucesso! Bem-vindo ao ATM KOTA.");
+            setSuccessMessage("Conta criada com sucesso! Bem-vindo ao Kusanga Kitadi.");
             setTimeout(() => {
               resetForm();
               onClose();
@@ -131,74 +164,90 @@ export function AuthModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in-50">
-      <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-border bg-card p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 backdrop-blur-xs p-4 animate-in fade-in-50">
+      <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-border bg-card p-6 sm:p-7 shadow-2xl animate-in zoom-in-95 duration-200">
         {/* Botão de Fechar */}
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 rounded-full p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+          className="absolute right-4 top-4 rounded-full p-2 text-muted-foreground hover:bg-secondary/70 hover:text-foreground transition-colors"
           aria-label="Fechar"
         >
-          <X className="size-5" />
+          <X className="size-4" />
         </button>
 
-        {/* Cabeçalho */}
+        {/* Cabeçalho com Símbolo Oficial Kusanga Kitadi */}
         <div className="mb-6 text-center">
-          <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            {mode === "login" ? (
-              <KeyRound className="size-6" />
-            ) : (
-              <User className="size-6" />
-            )}
+          <div className="mx-auto mb-3 flex size-14 items-center justify-center">
+            <KusangaSymbol size={48} />
           </div>
-          <h2 className="text-xl font-bold tracking-tight text-foreground">
-            {mode === "login" ? "Entrar no ATM KOTA" : "Criar Nova Conta"}
+          <h2 className="font-display text-xl font-bold tracking-tight text-foreground">
+            {mode === "login"
+              ? "Entrar no Kusanga Kitadi"
+              : mode === "register"
+              ? "Criar Conta no Kusanga Kitadi"
+              : "Recuperar Palavra-passe"}
           </h2>
           <p className="mt-1 text-xs text-muted-foreground">
             {mode === "login"
-              ? "Inicia sessão para gerir favoritos e reportar ATMs."
-              : "Junta-te à comunidade e ajuda os cidadãos de Luanda."}
+              ? "Inicia sessão para guardar favoritos e avaliar caixas."
+              : mode === "register"
+              ? "A força está na ligação. Junta-te à comunidade de Luanda."
+              : "Introduz o teu email para redefinir o acesso à tua conta."}
           </p>
         </div>
 
-        {/* Abas Alternadoras */}
-        <div className="mb-5 flex rounded-lg bg-secondary p-1 text-xs font-semibold">
+        {/* Abas Alternadoras (Apenas Login / Registo) */}
+        {mode !== "recovery" && (
+          <div className="mb-5 flex rounded-xl bg-secondary/70 p-1 text-xs font-bold">
+            <button
+              type="button"
+              onClick={() => handleSwitchMode("login")}
+              className={`flex-1 rounded-lg py-2 transition-all ${
+                mode === "login"
+                  ? "bg-card text-foreground shadow-xs font-bold"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Iniciar Sessão
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSwitchMode("register")}
+              className={`flex-1 rounded-lg py-2 transition-all ${
+                mode === "register"
+                  ? "bg-card text-foreground shadow-xs font-bold"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Criar Conta
+            </button>
+          </div>
+        )}
+
+        {/* Botão Voltar (em modo recovery) */}
+        {mode === "recovery" && (
           <button
             type="button"
             onClick={() => handleSwitchMode("login")}
-            className={`flex-1 rounded-md py-1.5 transition-all ${
-              mode === "login"
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
+            className="mb-4 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground font-semibold"
           >
-            Iniciar Sessão
+            <ArrowLeft className="size-3.5" />
+            Voltar ao Início de Sessão
           </button>
-          <button
-            type="button"
-            onClick={() => handleSwitchMode("register")}
-            className={`flex-1 rounded-md py-1.5 transition-all ${
-              mode === "register"
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            Criar Conta
-          </button>
-        </div>
+        )}
 
-        {/* Alertas de Erro ou Sucesso */}
+        {/* Mensagens de Sucesso e Erro */}
         {errorMessage && (
-          <div className="mb-4 flex items-start gap-2.5 rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-xs text-destructive">
+          <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
             <AlertCircle className="size-4 shrink-0 mt-0.5" />
-            <p className="leading-tight">{errorMessage}</p>
+            <p className="leading-snug">{errorMessage}</p>
           </div>
         )}
 
         {successMessage && (
-          <div className="mb-4 flex items-start gap-2.5 rounded-lg border border-status-available/20 bg-status-available/10 p-3 text-xs text-status-available">
+          <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-status-available/30 bg-status-available/10 p-3 text-xs text-status-available">
             <CheckCircle2 className="size-4 shrink-0 mt-0.5" />
-            <p className="leading-tight">{successMessage}</p>
+            <p className="leading-snug">{successMessage}</p>
           </div>
         )}
 
@@ -206,74 +255,87 @@ export function AuthModal({
         <form onSubmit={handleSubmit} className="space-y-4">
           {mode === "register" && (
             <div className="space-y-1.5">
-              <Label htmlFor="displayName" className="text-xs font-medium">
-                Nome ou Alcunha
+              <Label htmlFor="displayName" className="text-xs font-semibold text-foreground">
+                Nome de Apresentação
               </Label>
               <div className="relative">
-                <User className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
+                <User className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   id="displayName"
                   type="text"
-                  placeholder="Ex: Elton Pinto"
-                  className="pl-9 text-sm"
+                  placeholder="Ex: Manuel António"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
+                  className="pl-9 text-xs h-10 rounded-xl border-border focus:border-[#C09A5B]"
                 />
               </div>
             </div>
           )}
 
           <div className="space-y-1.5">
-            <Label htmlFor="authEmail" className="text-xs font-medium">
+            <Label htmlFor="authEmail" className="text-xs font-semibold text-foreground">
               Endereço de Email
             </Label>
             <div className="relative">
-              <Mail className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
+              <Mail className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 id="authEmail"
                 type="email"
-                placeholder="nome@exemplo.com"
                 required
-                className="pl-9 text-sm"
+                placeholder="nome@exemplo.ao"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                className="pl-9 text-xs h-10 rounded-xl border-border focus:border-[#C09A5B]"
               />
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="authPassword" className="text-xs font-medium">
-              Palavra-passe
-            </Label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
-              <Input
-                id="authPassword"
-                type="password"
-                placeholder="Mínimo de 6 caracteres"
-                required
-                className="pl-9 text-sm"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
+          {mode !== "recovery" && (
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="authPassword" className="text-xs font-semibold text-foreground">
+                  Palavra-passe
+                </Label>
+                {mode === "login" && (
+                  <button
+                    type="button"
+                    onClick={() => handleSwitchMode("recovery")}
+                    className="text-[11px] text-[#C09A5B] hover:underline font-semibold"
+                  >
+                    Esqueceste-te?
+                  </button>
+                )}
+              </div>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="authPassword"
+                  type="password"
+                  required
+                  placeholder="Mínimo 6 caracteres"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pl-9 text-xs h-10 rounded-xl border-border focus:border-[#C09A5B]"
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           {mode === "register" && (
             <div className="space-y-1.5">
-              <Label htmlFor="confirmPassword" className="text-xs font-medium">
+              <Label htmlFor="confirmPassword" className="text-xs font-semibold text-foreground">
                 Confirmar Palavra-passe
               </Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
+                <Lock className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   id="confirmPassword"
                   type="password"
-                  placeholder="Repete a palavra-passe"
                   required
-                  className="pl-9 text-sm"
+                  placeholder="Repete a palavra-passe"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="pl-9 text-xs h-10 rounded-xl border-border focus:border-[#C09A5B]"
                 />
               </div>
             </div>
@@ -281,47 +343,28 @@ export function AuthModal({
 
           <Button
             type="submit"
-            className="w-full font-semibold mt-2"
             disabled={loading}
+            className="w-full h-11 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 font-bold text-xs shadow-sm mt-2"
           >
             {loading ? (
               <>
                 <Loader2 className="mr-2 size-4 animate-spin" />
-                {mode === "login" ? "A autenticar..." : "A criar conta..."}
+                A processar...
               </>
             ) : mode === "login" ? (
-              "Entrar"
+              "Iniciar Sessão"
+            ) : mode === "register" ? (
+              "Criar Conta"
             ) : (
-              "Registar e Continuar"
+              "Enviar Link de Recuperação"
             )}
           </Button>
         </form>
 
-        {/* Rodapé / Alternância rápida */}
-        <div className="mt-5 text-center text-xs text-muted-foreground">
-          {mode === "login" ? (
-            <p>
-              Ainda não tens conta?{" "}
-              <button
-                type="button"
-                onClick={() => handleSwitchMode("register")}
-                className="font-semibold text-primary hover:underline"
-              >
-                Regista-te grátis
-              </button>
-            </p>
-          ) : (
-            <p>
-              Já tens conta?{" "}
-              <button
-                type="button"
-                onClick={() => handleSwitchMode("login")}
-                className="font-semibold text-primary hover:underline"
-              >
-                Inicia sessão
-              </button>
-            </p>
-          )}
+        {/* Rodapé institucional */}
+        <div className="mt-5 text-center text-[10px] text-muted-foreground border-t border-border/60 pt-3">
+          <p className="font-semibold text-[#C09A5B]">KUSANGA KITADI</p>
+          <p className="italic">A força está na ligação. Saiba onde levantar.</p>
         </div>
       </div>
     </div>

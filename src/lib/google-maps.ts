@@ -1,5 +1,5 @@
 /**
- * Utilitários para Google Maps — ATM KOTA
+ * Utilitários para Google Maps — KUSANGA KITADI
  * Nunca expõe coordenadas brutas ao utilizador.
  */
 

@@ -215,17 +215,25 @@ export function SubmitAtmForm({ onSubmit, onCancel }: SubmitAtmFormProps) {
       )}
 
       {/* Acções */}
-      <div className="flex gap-2 pt-1">
+      <div className="flex gap-2.5 pt-2">
         {onCancel && (
-          <Button type="button" variant="outline" className="flex-1 rounded-md" onClick={onCancel}>
+          <Button type="button" variant="outline" className="flex-1 h-11 rounded-xl text-xs font-semibold" onClick={onCancel}>
             Cancelar
           </Button>
         )}
-        <Button type="submit" disabled={isSubmitting} className="flex-1 rounded-md">
-          {isSubmitting && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
-          {isSubmitting ? "A enviar…" : "Submeter ATM"}
+        <Button
+          type="submit"
+          disabled={isSubmitting}
+          className="flex-1 h-11 rounded-xl bg-primary text-primary-foreground font-bold text-xs hover:bg-primary/90 shadow-sm"
+        >
+          {isSubmitting && <Loader2 className="mr-2 size-4 animate-spin" aria-hidden="true" />}
+          {isSubmitting ? "A enviar…" : "Submeter para Moderação"}
         </Button>
       </div>
+
+      <p className="text-center text-[10px] text-muted-foreground italic pt-2">
+        A força está na ligação. Obrigado por fortalecer a nossa comunidade.
+      </p>
     </form>
   );
 }

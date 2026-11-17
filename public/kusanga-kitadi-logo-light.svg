@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 220" width="100%" height="100%" fill="none">
+  <defs>
+    <!-- Gradiente Ouro Principal -->
+    <linearGradient id="kkGoldLight1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E2BE78"/>
+      <stop offset="30%" stop-color="#C09A5B"/>
+      <stop offset="70%" stop-color="#9E7638"/>
+      <stop offset="100%" stop-color="#735220"/>
+    </linearGradient>
+
+    <!-- Gradiente Ouro Secundário -->
+    <linearGradient id="kkGoldLight2" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FDE8B3"/>
+      <stop offset="40%" stop-color="#C09A5B"/>
+      <stop offset="100%" stop-color="#8B6328"/>
+    </linearGradient>
+
+    <filter id="kkShadowLight" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="1.5" stdDeviation="2" flood-color="#26362F" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+
+  <!-- Símbolo K Trama Entrelaçada -->
+  <g transform="translate(10, 10) scale(0.72)" filter="url(#kkShadowLight)">
+    <!-- Haste Vertical Esquerda - Fita 1 -->
+    <path d="M 40 32 C 34 32 30 36 30 42 L 30 110 C 30 135 48 152 74 152 C 78 152 82 148 82 144 L 82 134 C 82 130 78 126 74 126 C 58 126 48 116 48 100 L 48 42 C 48 36 44 32 40 32 Z" fill="url(#kkGoldLight1)"/>
+    <!-- Haste Vertical Esquerda - Fita 2 -->
+    <path d="M 68 32 C 62 32 58 36 58 42 L 58 120 C 58 126 62 130 68 130 C 74 130 78 126 78 120 L 78 42 C 78 36 74 32 68 32 Z" fill="url(#kkGoldLight2)"/>
+    <!-- Trama Central / Diagonal Inferior Esquerda -->
+    <path d="M 30 148 C 30 142 34 138 40 138 L 52 138 C 58 138 62 142 62 148 L 62 160 C 62 166 58 170 52 170 L 40 170 C 34 170 30 166 30 160 Z" fill="url(#kkGoldLight1)"/>
+    <path d="M 46 128 L 74 100 C 78 96 84 96 88 100 L 98 110 C 102 114 102 120 98 124 L 70 152 C 66 156 60 156 56 152 L 46 142 C 42 138 42 132 46 128 Z" fill="url(#kkGoldLight1)"/>
+    <!-- Braço Diagonal Superior Direito -->
+    <path d="M 86 96 L 140 42 C 146 36 156 36 162 42 L 170 50 C 176 56 176 66 170 72 L 118 124 C 114 128 108 128 104 124 L 86 106 C 82 102 82 98 86 96 Z" fill="url(#kkGoldLight2)"/>
+    <!-- Braço Diagonal Superior Direito - Fita Interna -->
+    <path d="M 112 36 C 106 36 102 40 102 46 L 102 54 C 102 58 104 62 108 64 L 144 100 C 148 104 154 104 158 100 L 166 92 C 170 88 170 82 166 78 L 126 38 C 122 36 117 36 112 36 Z" fill="url(#kkGoldLight1)"/>
+    <!-- Perna Diagonal Inferior Direita -->
+    <path d="M 98 110 L 150 162 C 156 168 166 168 172 162 L 178 154 C 184 148 184 138 178 132 L 126 80 C 122 76 116 76 112 80 L 98 94 C 94 98 94 106 98 110 Z" fill="url(#kkGoldLight1)"/>
+    <!-- Perna Diagonal Inferior Direita - Fita Interna -->
+    <path d="M 78 138 L 112 172 C 116 176 122 176 126 172 L 134 164 C 138 160 138 154 134 150 L 100 116 C 96 112 90 112 86 116 L 78 124 C 74 128 74 134 78 138 Z" fill="url(#kkGoldLight2)"/>
+    <!-- Nó Central -->
+    <path d="M 74 84 C 70 80 70 74 74 70 L 104 40 C 108 36 114 36 118 40 L 128 50 C 132 54 132 60 128 64 L 98 94 C 94 98 88 98 84 94 L 74 84 Z" fill="url(#kkGoldLight1)"/>
+  </g>
+
+  <!-- Divisor Vertical Fino em Ouro -->
+  <line x1="168" y1="36" x2="168" y2="134" stroke="url(#kkGoldLight1)" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- Tipografia da Marca -->
+  <!-- "Kusanga" em Verde Floresta -->
+  <text x="188" y="78" font-family="'Sora', 'Manrope', system-ui, sans-serif" font-size="46" font-weight="700" fill="#26362F" letter-spacing="-0.5">Kusanga</text>
+  <!-- "Kitadi" em Ouro Artesanal -->
+  <text x="188" y="130" font-family="'Sora', 'Manrope', system-ui, sans-serif" font-size="52" font-weight="800" fill="url(#kkGoldLight1)" letter-spacing="-0.5">Kitadi</text>
+
+  <!-- Slogan Oficial em Cápsula Estilizada -->
+  <g transform="translate(10, 160)">
+    <!-- Fundo da cápsula com borda dourada e fundo areia suave -->
+    <rect x="0" y="0" width="510" height="42" rx="21" fill="#EFE9DC" stroke="url(#kkGoldLight1)" stroke-width="1.8"/>
+    <!-- Ícone Marcador / Pin Localização em Ouro -->
+    <g transform="translate(20, 11) scale(0.85)">
+      <path d="M 12 2 C 7.58 2 4 5.58 4 10 C 4 15.25 12 22 12 22 C 12 22 20 15.25 20 10 C 20 5.58 16.42 2 12 2 Z" fill="none" stroke="#26362F" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="12" cy="10" r="3" fill="url(#kkGoldLight1)"/>
+    </g>
+    <!-- Linha divisória interna -->
+    <line x1="48" y1="10" x2="48" y2="32" stroke="url(#kkGoldLight1)" stroke-width="1.5" stroke-opacity="0.6"/>
+    <!-- Texto do Slogan -->
+    <text x="60" y="26" font-family="'Manrope', 'Sora', system-ui, sans-serif" font-size="14" font-weight="600" fill="#26362F" letter-spacing="0.2">A força está na ligação.</text>
+    <text x="238" y="26" font-family="'Manrope', 'Sora', system-ui, sans-serif" font-size="14" font-weight="700" font-style="italic" fill="url(#kkGoldLight1)" letter-spacing="0.2">Saiba onde levantar.</text>
+  </g>
+</svg>

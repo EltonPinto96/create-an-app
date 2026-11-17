@@ -1,5 +1,5 @@
 // ============================================================
-// ATM KOTA — Database Types (gerado manualmente a partir do schema)
+// KUSANGA KITADI — Database Types (gerado a partir do schema Supabase)
 // ============================================================
 
 export type Json =

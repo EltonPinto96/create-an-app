@@ -46,6 +46,7 @@ import { useFavorites } from "@/lib/use-favorites";
 import { BankStats } from "@/components/BankStats";
 import { useFavoriteNotifications } from "@/lib/use-favorite-notifications";
 import { NotificationsModal } from "@/components/NotificationsModal";
+import { KusangaLogo, KusangaSymbol, KusangaSloganPill } from "@/components/KusangaLogo";
 
 type Section = "home" | "map" | "search" | "favorites" | "profile" | "admin";
 type Filter = "all" | DemoAvailability;
@@ -57,17 +58,17 @@ const hasSupabase = Boolean(import.meta.env.VITE_SUPABASE_URL);
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "ATM KOTA — Saiba onde levantar" },
+      { title: "KUSANGA KITADI — A força está na ligação. Saiba onde levantar." },
       {
         name: "description",
         content:
-          "Encontra ATM e consulta reportes comunitários recentes no ATM KOTA. Disponível em breve para o piloto de Luanda.",
+          "A força está na ligação. Saiba onde levantar. Encontra caixas automáticos (ATM) e consulta reportes comunitários de disponibilidade em tempo real em Luanda.",
       },
-      { property: "og:title", content: "ATM KOTA — Saiba onde levantar" },
+      { property: "og:title", content: "KUSANGA KITADI — A força está na ligação" },
       {
         property: "og:description",
         content:
-          "Saiba onde levantar. Poupe tempo. Consulte a disponibilidade comunitária de ATM em Angola.",
+          "A força está na ligação. Saiba onde levantar. Consulte a disponibilidade comunitária de ATM em Angola.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -301,13 +302,15 @@ function Index() {
           ))}
         </nav>
         <div className="mx-4 mb-5 border-t border-border pt-4">
-          <div className="flex items-start gap-3 px-3 py-2">
-            <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+          <div className="flex items-start gap-2.5 px-3 py-2">
+            <ShieldCheck className="mt-0.5 size-4 shrink-0 text-[#C09A5B]" aria-hidden="true" />
             <p className="text-xs leading-5 text-muted-foreground">
-              Nunca pedimos o PIN ou dados do teu cartão.
+              Nunca pedimos o PIN ou dados do teu cartão bancário.
             </p>
           </div>
-          <p className="px-3 pt-3 text-xs text-muted-foreground">ATM KOTA · Piloto Luanda</p>
+          <p className="px-3 pt-2 text-xs font-bold text-[#C09A5B]">KUSANGA KITADI</p>
+          <p className="px-3 text-[10px] text-muted-foreground italic">A força está na ligação.</p>
+          <p className="px-3 text-[10px] text-muted-foreground italic">Saiba onde levantar.</p>
         </div>
       </aside>
 
@@ -570,15 +573,20 @@ function Index() {
 }
 
 function Brand({ compact = false }: { compact?: boolean }) {
+  if (compact) {
+    return (
+      <div className="py-1">
+        <KusangaLogo variant="compact" size={32} theme="light" />
+      </div>
+    );
+  }
+
   return (
-    <div className={`flex items-center gap-3 ${compact ? "py-0" : "px-6 py-6"}`}>
-      <div className="flex size-10 items-center justify-center rounded-md bg-primary text-primary-foreground">
-        <Banknote className="size-5" strokeWidth={2.2} aria-hidden="true" />
-      </div>
-      <div className="leading-none">
-        <p className="font-display text-[19px] font-bold tracking-[0]">ATM KOTA</p>
-        {!compact && <p className="mt-1.5 text-[10px] font-medium uppercase tracking-[0] text-muted-foreground">Saiba onde levantar</p>}
-      </div>
+    <div className="px-5 py-5 border-b border-border/80">
+      <KusangaLogo variant="brand" size={40} theme="light" />
+      <p className="mt-2 text-[10px] font-bold uppercase tracking-wider text-[#C09A5B]">
+        A força está na ligação
+      </p>
     </div>
   );
 }
@@ -600,14 +608,24 @@ function NavButton({
       variant={active ? "secondary" : "ghost"}
       className={
         mobile
-          ? `flex h-[58px] w-full flex-col gap-1 rounded-none px-1 text-[10px] ${active ? "text-primary" : "text-muted-foreground"}`
-          : `h-11 w-full justify-start rounded-md px-3 text-sm ${active ? "bg-secondary font-semibold text-primary" : "font-medium text-muted-foreground"}`
+          ? `flex h-[58px] w-full flex-col gap-1 rounded-none px-1 text-[10px] ${
+              active ? "text-[#C09A5B] font-bold" : "text-muted-foreground"
+            }`
+          : `h-11 w-full justify-start rounded-xl px-3.5 text-sm transition-all ${
+              active
+                ? "bg-primary text-primary-foreground font-bold shadow-xs"
+                : "font-semibold text-muted-foreground hover:bg-secondary/80 hover:text-foreground"
+            }`
       }
       aria-current={active ? "page" : undefined}
       aria-label={mobile ? item.label : undefined}
       onClick={onClick}
     >
-      <Icon className={mobile ? "size-[19px]" : "size-[18px]"} strokeWidth={active ? 2.3 : 1.8} aria-hidden="true" />
+      <Icon
+        className={mobile ? "size-[20px]" : "size-[18px] mr-2.5"}
+        strokeWidth={active ? 2.4 : 1.8}
+        aria-hidden="true"
+      />
       {item.label}
     </Button>
   );
@@ -616,19 +634,19 @@ function NavButton({
 function PageHeading({ eyebrow, title, text }: { eyebrow: string; title: string; text: string }) {
   return (
     <div className="mb-7">
-      <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0] text-primary">{eyebrow}</p>
-      <h1 className="font-display text-3xl font-semibold tracking-[0] sm:text-[34px]">{title}</h1>
-      <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{text}</p>
+      <p className="mb-1.5 text-xs font-bold uppercase tracking-wider text-[#C09A5B]">{eyebrow}</p>
+      <h1 className="font-display text-3xl font-bold tracking-tight sm:text-[34px] text-foreground">{title}</h1>
+      <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">{text}</p>
     </div>
   );
 }
 
 function DemoNotice() {
   return (
-    <div className="flex items-start gap-3 border border-status-stale/20 bg-status-stale/10 px-4 py-3.5">
-      <CircleHelp className="mt-0.5 size-4 shrink-0 text-status-stale" aria-hidden="true" />
+    <div className="flex items-start gap-3 rounded-2xl border border-border/80 bg-secondary/35 px-4 py-3.5">
+      <CircleHelp className="mt-0.5 size-4 shrink-0 text-[#C09A5B]" aria-hidden="true" />
       <p className="text-xs leading-5 text-foreground/80">
-        <strong className="font-semibold">Dados de demonstração.</strong> ATM, locais e reportes abaixo são fictícios e não indicam disponibilidade real.
+        <strong className="font-bold text-foreground">Ambiente de Demonstração.</strong> Caixas e reportes colaborativos apresentados ilustram o funcionamento do Kusanga Kitadi em Luanda.
       </p>
     </div>
   );
@@ -679,42 +697,54 @@ function HomeView({
 
   return (
     <>
-      <section className="relative mb-8 grid min-h-[300px] overflow-hidden rounded-md bg-primary text-primary-foreground md:grid-cols-[1.05fr_0.95fr]">
-        <div className="relative z-10 flex flex-col items-start justify-center px-6 py-8 sm:px-9 md:px-10 md:py-10">
-          <Badge variant="outline" className="mb-5 rounded-sm border-primary-foreground/30 bg-primary-foreground/10 px-2.5 py-1 text-[10px] font-medium text-primary-foreground">
-            <MapPin className="mr-1.5 size-3" aria-hidden="true" /> LUANDA · {hasSupabase ? "DADOS REAIS" : "VERSÃO DE DEMONSTRAÇÃO"}
-          </Badge>
-          <h1 className="max-w-xl font-display text-3xl font-semibold leading-tight tracking-[0] sm:text-4xl">
-            Saiba onde levantar. <span className="text-brand-lime">Poupe tempo.</span>
+      {/* Hero Oficial Kusanga Kitadi — Tecnologia Africana Premium */}
+      <section className="relative mb-8 overflow-hidden rounded-3xl border border-[#C09A5B]/30 bg-gradient-to-br from-[#2D4037] via-[#26362F] to-[#1C2923] text-[#F7F4EC] shadow-lg">
+        {/* Padrão geométrico subtil em marca de água nos cantos */}
+        <div className="pointer-events-none absolute -right-16 -top-16 size-80 rounded-full border border-[#C09A5B]/15" />
+        <div className="pointer-events-none absolute -right-24 -top-24 size-96 rounded-full border border-[#C09A5B]/10" />
+
+        <div className="relative z-10 flex flex-col items-start px-6 py-9 sm:px-10 md:py-12">
+          {/* Cápsula do Slogan Oficial */}
+          <div className="mb-4">
+            <KusangaSloganPill dark />
+          </div>
+
+          <h1 className="max-w-2xl font-display text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl lg:text-[42px] text-[#F7F4EC]">
+            A força está na ligação. <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FFF2CE] via-[#D8B168] to-[#C09A5B]">
+              Saiba onde levantar.
+            </span>
           </h1>
-          <p className="mt-3 max-w-md text-sm leading-6 text-primary-foreground/75">
-            Consulte reportes comunitários sobre ATM e disponibilidade de dinheiro.
+
+          <p className="mt-3.5 max-w-xl text-sm leading-relaxed text-[#F7F4EC]/80">
+            Plataforma tecnológica angolana para localizar caixas automáticos (ATM) e consultar reportes colaborativos de disponibilidade de numerário em Luanda.
           </p>
-          <div className="mt-6 flex w-full max-w-lg flex-col gap-2 sm:flex-row">
+
+          <div className="mt-7 flex w-full max-w-2xl flex-col gap-2.5 sm:flex-row">
             <label className="relative min-w-0 flex-1">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-[17px] -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
               <Input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Onde pretendes levantar dinheiro?"
+                placeholder="Onde pretendes levantar dinheiro em Luanda?"
                 aria-label="Pesquisar ATM por nome, banco ou bairro"
-                className="h-11 rounded-md border-primary-foreground/20 bg-background pl-10 text-foreground placeholder:text-muted-foreground"
+                className="h-12 rounded-xl border-[#C09A5B]/30 bg-background/95 pl-10 text-foreground placeholder:text-muted-foreground focus:border-[#C09A5B]"
               />
             </label>
-            <Button variant="secondary" className="h-11 shrink-0 rounded-md bg-brand-lime px-4 text-brand-ink hover:bg-brand-lime/90" onClick={onLocation}>
-              <Crosshair className="size-4" aria-hidden="true" />
-              Usar a minha localização
+            <Button
+              variant="secondary"
+              className="h-12 shrink-0 rounded-xl bg-gradient-to-r from-[#E2BE78] via-[#C09A5B] to-[#9E7638] px-5 text-[#1C2923] font-bold text-xs hover:brightness-110 shadow-sm gap-2"
+              onClick={onLocation}
+            >
+              <Crosshair className="size-4 text-[#1C2923]" aria-hidden="true" />
+              A minha localização
             </Button>
           </div>
-          {locationMessage && <p role="status" className="mt-2 text-xs leading-5 text-primary-foreground/80">{locationMessage}</p>}
-        </div>
-        <div className="relative hidden min-h-[300px] md:block">
-          <img src={atmPhoto} alt="Imagem ilustrativa de uma caixa automática genérica, sem ligação a um banco real" width={1024} height={768} className="absolute inset-0 size-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-r from-primary via-primary/35 to-transparent" />
-          <span className="absolute bottom-4 right-4 border border-background/40 bg-foreground/80 px-2 py-1 text-[10px] text-background">Imagem ilustrativa · não representa ATM real</span>
-        </div>
-        <div className="absolute inset-0 md:hidden">
-          <img src={atmPhoto} alt="Imagem ilustrativa de uma caixa automática genérica, sem ligação a um banco real" width={1024} height={768} className="size-full object-cover opacity-15" />
+          {locationMessage && (
+            <p role="status" className="mt-2.5 text-xs text-[#C09A5B] font-medium">
+              {locationMessage}
+            </p>
+          )}
         </div>
       </section>
 
@@ -799,6 +829,81 @@ function HomeView({
           </div>
         ) : <EmptyResults />}
       </section>
+
+      {/* Secção Explicativa e Participação Comunitária */}
+      <section className="mt-12 rounded-3xl border border-border bg-card p-6 sm:p-9 shadow-sm">
+        <div className="max-w-2xl">
+          <p className="text-xs font-bold uppercase tracking-wider text-[#C09A5B]">
+            Como Funciona
+          </p>
+          <h2 className="mt-1 font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+            A força está na ligação.
+          </h2>
+          <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+            Uma trama é formada por elementos individuais que, quando ligados, criam uma estrutura mais forte. No Kusanga Kitadi, cada pessoa contribui com informação e cada reporte ajuda a comunidade a tomar melhores decisões.
+          </p>
+        </div>
+
+        <div className="mt-8 grid gap-4 sm:grid-cols-3">
+          <div className="rounded-2xl border border-border/80 bg-background/70 p-5">
+            <span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary font-display font-bold text-sm mb-3">
+              01
+            </span>
+            <h4 className="font-display font-bold text-base text-foreground">
+              Localiza no Mapa
+            </h4>
+            <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">
+              Pesquisa caixas automáticos por banco (BAI, BFA, Atlântico, etc.), município ou proximidade.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-border/80 bg-background/70 p-5">
+            <span className="flex size-10 items-center justify-center rounded-xl bg-[#C09A5B]/15 text-[#C09A5B] font-display font-bold text-sm mb-3">
+              02
+            </span>
+            <h4 className="font-display font-bold text-base text-foreground">
+              Consulta a Disponibilidade
+            </h4>
+            <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">
+              Verifica se o caixa tem notas disponíveis ou se está fora de serviço antes de sair de casa.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-border/80 bg-background/70 p-5">
+            <span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary font-display font-bold text-sm mb-3">
+              03
+            </span>
+            <h4 className="font-display font-bold text-base text-foreground">
+              Partilha com a Comunidade
+            </h4>
+            <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">
+              Após levantares, confirma com 1 clique se havia notas e apoia o próximo cidadão.
+            </p>
+          </div>
+        </div>
+
+        {/* Aviso de Transparência Institucional */}
+        <div className="mt-6 rounded-2xl border border-border/70 bg-secondary/30 p-4 text-xs text-muted-foreground flex items-start gap-3">
+          <ShieldCheck className="size-4 text-[#C09A5B] shrink-0 mt-0.5" />
+          <p className="leading-relaxed">
+            <strong className="text-foreground font-semibold">Nota de transparência:</strong> A informação sobre disponibilidade de numerário é gerada exclusivamente pela comunidade através de reportes participativos. Não constitui confirmação oficial dos bancos nem acesso a dados bancários internos.
+          </p>
+        </div>
+      </section>
+
+      {/* Rodapé Institucional */}
+      <footer className="mt-12 rounded-3xl border border-border/70 bg-card p-6 sm:p-8 text-xs text-muted-foreground">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6 border-b border-border/70">
+          <KusangaLogo variant="brand" size={36} theme="light" />
+          <KusangaSloganPill dark={false} />
+        </div>
+        <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px]">
+          <p>© {new Date().getFullYear()} KUSANGA KITADI · Plataforma Tecnológica Angolana.</p>
+          <p className="italic text-[#C09A5B] font-semibold">
+            A força está na ligação. Saiba onde levantar.
+          </p>
+        </div>
+      </footer>
     </>
   );
 }
@@ -836,38 +941,52 @@ function SearchView({
 }) {
   return (
     <>
-      <PageHeading eyebrow="Encontra um ATM" title="Pesquisar" text={hasSupabase ? "Procura por banco, identificação ou zona." : "Procura por banco, identificação ou zona. Nesta versão, os resultados são apenas exemplos fictícios."} />
+      <PageHeading
+        eyebrow="Rede de Luanda"
+        title="Pesquisar Caixas"
+        text={
+          hasSupabase
+            ? "Localiza caixas automáticos por banco, município ou bairro. A força está na ligação. Saiba onde levantar."
+            : "Procura por banco, município ou zona. Consulta disponibilidade colaborativa em tempo real."
+        }
+      />
       {!hasSupabase && <div className="mb-5"><DemoNotice /></div>}
-      <div className="mb-5 flex flex-col gap-3 sm:flex-row">
-        <label className="relative min-w-0 flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-          <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={hasSupabase ? "Banco, ATM ou localização" : "Banco, ATM ou localização fictícia"} className="h-11 rounded-md pl-10" aria-label="Pesquisar ATM" />
+      <div className="mb-6 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+        <label className="relative min-w-0 sm:col-span-2 lg:col-span-1">
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+          <Input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Banco, endereço ou bairro..."
+            className="h-11 rounded-xl pl-10 text-xs border-border bg-background focus:border-[#C09A5B]"
+            aria-label="Pesquisar caixas automáticos"
+          />
         </label>
-        <label className="flex h-11 items-center gap-2 border border-input bg-background px-3 text-sm">
-          <SlidersHorizontal className="size-4 text-muted-foreground" aria-hidden="true" />
+        <label className="flex h-11 items-center gap-2 rounded-xl border border-border bg-background px-3 text-xs">
+          <SlidersHorizontal className="size-4 text-[#C09A5B]" aria-hidden="true" />
           <span className="sr-only">Filtrar disponibilidade</span>
-          <select value={filter} onChange={(event) => setFilter(event.target.value as Filter)} className="h-full min-w-40 bg-transparent text-sm outline-none">
-            <option value="all">Todos os estados</option>
-            <option value="available">Reportado com dinheiro</option>
-            <option value="no-cash">Reportado sem dinheiro</option>
+          <select value={filter} onChange={(event) => setFilter(event.target.value as Filter)} className="h-full w-full bg-transparent text-xs font-semibold outline-none cursor-pointer">
+            <option value="all">Todas as disponibilidades</option>
+            <option value="available">Com notas disponíveis</option>
+            <option value="no-cash">Sem notas</option>
             <option value="out-of-service">Fora de serviço</option>
-            <option value="stale">Informação desactualizada</option>
+            <option value="stale">Informação expirada</option>
           </select>
         </label>
-        <label className="flex h-11 items-center gap-2 border border-input bg-background px-3 text-sm">
-          <Banknote className="size-4 text-muted-foreground" aria-hidden="true" />
+        <label className="flex h-11 items-center gap-2 rounded-xl border border-border bg-background px-3 text-xs">
+          <Banknote className="size-4 text-[#C09A5B]" aria-hidden="true" />
           <span className="sr-only">Filtrar por banco</span>
-          <select value={selectedBank} onChange={(event) => setSelectedBank(event.target.value)} className="h-full min-w-36 bg-transparent text-sm outline-none">
+          <select value={selectedBank} onChange={(event) => setSelectedBank(event.target.value)} className="h-full w-full bg-transparent text-xs font-semibold outline-none cursor-pointer">
             <option value="all">Todos os bancos</option>
             {bankOptions.map((bank) => (
               <option key={bank} value={bank}>{bank}</option>
             ))}
           </select>
         </label>
-        <label className="flex h-11 items-center gap-2 border border-input bg-background px-3 text-sm">
-          <MapPin className="size-4 text-muted-foreground" aria-hidden="true" />
+        <label className="flex h-11 items-center gap-2 rounded-xl border border-border bg-background px-3 text-xs">
+          <MapPin className="size-4 text-[#C09A5B]" aria-hidden="true" />
           <span className="sr-only">Filtrar por município</span>
-          <select value={selectedMunicipality} onChange={(event) => setSelectedMunicipality(event.target.value)} className="h-full min-w-36 bg-transparent text-sm outline-none">
+          <select value={selectedMunicipality} onChange={(event) => setSelectedMunicipality(event.target.value)} className="h-full w-full bg-transparent text-xs font-semibold outline-none cursor-pointer">
             <option value="all">Todos os municípios</option>
             {municipalityOptions.map((m) => (
               <option key={m} value={m}>{m}</option>
@@ -904,9 +1023,9 @@ function MapView({
   return (
     <>
       <PageHeading
-        eyebrow="Explorar a cidade"
-        title="Mapa de Luanda"
-        text="Consulta a disponibilidade de caixas automáticos em tempo real. Clica nos marcadores para traçar rota ou avaliar."
+        eyebrow="Exploração Geográfica"
+        title="Mapa de Caixas em Luanda"
+        text="A força está na ligação. Consulta a disponibilidade de numerário em tempo real, traça rota até ao caixa mais próximo ou avalia a tua experiência."
       />
       <InteractiveMap atms={atms} onSelectAtm={onSelect} />
     </>
@@ -1086,8 +1205,8 @@ function ProfileView({
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">{user.email}</p>
-                <p className="text-[11px] text-muted-foreground/80 mt-1">
-                  Membro da rede colaborativa ATM KOTA
+                <p className="text-[11px] text-[#C09A5B] font-semibold mt-1">
+                  Membro da rede colaborativa Kusanga Kitadi
                 </p>
               </div>
             </div>
@@ -1105,16 +1224,16 @@ function ProfileView({
           </div>
         </div>
       ) : (
-        <div className="mb-6 rounded-xl border border-primary/20 bg-primary/5 p-6 shadow-sm">
+        <div className="mb-6 rounded-2xl border border-[#C09A5B]/30 bg-[#C09A5B]/5 p-6 shadow-sm">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-start gap-3.5">
-              <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-                <UserRound className="size-6" />
+              <div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
+                <UserRound className="size-6 text-[#C09A5B]" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-foreground">Entra na comunidade ATM KOTA</h3>
+                <h3 className="font-display text-base font-bold text-foreground">Entra na comunidade Kusanga Kitadi</h3>
                 <p className="text-xs text-muted-foreground mt-1 max-w-md">
-                  Cria uma conta ou inicia sessão para submeter novos ATMs de Luanda, reportar disponibilidade de dinheiro e guardar os teus favoritos.
+                  A força está na ligação. Cria uma conta para submeter novos caixas, reportar disponibilidade de dinheiro e acompanhar os teus favoritos em Luanda.
                 </p>
               </div>
             </div>
@@ -1168,17 +1287,17 @@ function ProfileView({
       {/* Secção: Submeter ATM */}
       <div className="mb-6 border border-border bg-card p-5 sm:p-6">
         <div className="flex items-start gap-4">
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-md bg-secondary text-primary">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#C09A5B]/15 text-[#C09A5B]">
             <PlusCircle className="size-5" aria-hidden="true" />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="font-semibold">Submeter um ATM</p>
-            <p className="mt-1 text-sm leading-5 text-muted-foreground">
-              Conheces um ATM que não está na lista? Submete-o para aprovação e ajuda a comunidade.
+            <p className="font-display font-bold text-foreground">Submeter Caixa Automático</p>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+              Conheces um caixa que não consta na lista? Submete a localização para validação e fortalece a nossa rede em Luanda.
             </p>
-            <Button variant="outline" className="mt-4 rounded-md" onClick={onSubmitAtm}>
-              <PlusCircle className="size-4" aria-hidden="true" />
-              Submeter ATM
+            <Button variant="outline" className="mt-4 rounded-xl text-xs font-bold border-border hover:border-[#C09A5B]" onClick={onSubmitAtm}>
+              <PlusCircle className="mr-1.5 size-4 text-[#C09A5B]" />
+              Submeter Caixa
             </Button>
           </div>
         </div>

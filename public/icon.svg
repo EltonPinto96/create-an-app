@@ -1,22 +1,59 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" fill="none">
   <defs>
-    <linearGradient id="kotaGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#15803d" />
-      <stop offset="100%" stop-color="#0f5132" />
+    <!-- Fundo Verde Floresta Luxo -->
+    <linearGradient id="bgForest" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2D4037"/>
+      <stop offset="50%" stop-color="#26362F"/>
+      <stop offset="100%" stop-color="#19241F"/>
     </linearGradient>
+
+    <!-- Gradiente Ouro Principal -->
+    <linearGradient id="iconGold1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFF0C8"/>
+      <stop offset="25%" stop-color="#E2BE78"/>
+      <stop offset="60%" stop-color="#C09A5B"/>
+      <stop offset="85%" stop-color="#9E7638"/>
+      <stop offset="100%" stop-color="#735220"/>
+    </linearGradient>
+
+    <linearGradient id="iconGold2" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFF6DC"/>
+      <stop offset="35%" stop-color="#E8CA88"/>
+      <stop offset="75%" stop-color="#C09A5B"/>
+      <stop offset="100%" stop-color="#8B6328"/>
+    </linearGradient>
+
+    <filter id="iconShadow" x="-15%" y="-15%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#0E1612" flood-opacity="0.65"/>
+    </filter>
   </defs>
-  <!-- Background with rounded corners -->
-  <rect width="512" height="512" rx="108" fill="url(#kotaGrad)" />
-  <!-- Cash & ATM Icon -->
-  <g fill="none" stroke="#ffffff" stroke-width="26" stroke-linecap="round" stroke-linejoin="round" transform="translate(66, 80)">
-    <rect x="20" y="30" width="340" height="210" rx="20" stroke-width="24"/>
-    <circle cx="190" cy="135" r="46" stroke-width="24"/>
-    <path d="M 56 75 L 86 75" stroke-width="24"/>
-    <path d="M 294 195 L 324 195" stroke-width="24"/>
-    <!-- Cash dispenser slot -->
-    <path d="M 50 280 L 330 280" stroke-width="26"/>
-    <!-- Note coming out -->
-    <rect x="110" y="270" width="160" height="36" rx="8" fill="#bef264" stroke="#ffffff" stroke-width="8"/>
+
+  <!-- Fundo com cantos arredondados -->
+  <rect width="512" height="512" rx="112" fill="url(#bgForest)"/>
+  <!-- Borda interna em ouro subtil -->
+  <rect x="12" y="12" width="488" height="488" rx="100" fill="none" stroke="url(#iconGold1)" stroke-width="3" stroke-opacity="0.3"/>
+
+  <!-- Símbolo K Trama em Ouro no Centro -->
+  <g transform="translate(68, 60) scale(1.9)" filter="url(#iconShadow)">
+    <!-- Haste Vertical Esquerda - Fita 1 -->
+    <path d="M 40 32 C 34 32 30 36 30 42 L 30 110 C 30 135 48 152 74 152 C 78 152 82 148 82 144 L 82 134 C 82 130 78 126 74 126 C 58 126 48 116 48 100 L 48 42 C 48 36 44 32 40 32 Z" fill="url(#iconGold1)"/>
+    <!-- Haste Vertical Esquerda - Fita 2 -->
+    <path d="M 68 32 C 62 32 58 36 58 42 L 58 120 C 58 126 62 130 68 130 C 74 130 78 126 78 120 L 78 42 C 78 36 74 32 68 32 Z" fill="url(#iconGold2)"/>
+    <!-- Trama Central / Diagonal Inferior Esquerda -->
+    <path d="M 30 148 C 30 142 34 138 40 138 L 52 138 C 58 138 62 142 62 148 L 62 160 C 62 166 58 170 52 170 L 40 170 C 34 170 30 166 30 160 Z" fill="url(#iconGold1)"/>
+    <path d="M 46 128 L 74 100 C 78 96 84 96 88 100 L 98 110 C 102 114 102 120 98 124 L 70 152 C 66 156 60 156 56 152 L 46 142 C 42 138 42 132 46 128 Z" fill="url(#iconGold1)"/>
+    <!-- Braço Diagonal Superior Direito -->
+    <path d="M 86 96 L 140 42 C 146 36 156 36 162 42 L 170 50 C 176 56 176 66 170 72 L 118 124 C 114 128 108 128 104 124 L 86 106 C 82 102 82 98 86 96 Z" fill="url(#iconGold2)"/>
+    <!-- Braço Diagonal Superior Direito - Fita Interna -->
+    <path d="M 112 36 C 106 36 102 40 102 46 L 102 54 C 102 58 104 62 108 64 L 144 100 C 148 104 154 104 158 100 L 166 92 C 170 88 170 82 166 78 L 126 38 C 122 36 117 36 112 36 Z" fill="url(#iconGold1)"/>
+    <!-- Perna Diagonal Inferior Direita -->
+    <path d="M 98 110 L 150 162 C 156 168 166 168 172 162 L 178 154 C 184 148 184 138 178 132 L 126 80 C 122 76 116 76 112 80 L 98 94 C 94 98 94 106 98 110 Z" fill="url(#iconGold1)"/>
+    <!-- Perna Diagonal Inferior Direita - Fita Interna -->
+    <path d="M 78 138 L 112 172 C 116 176 122 176 126 172 L 134 164 C 138 160 138 154 134 150 L 100 116 C 96 112 90 112 86 116 L 78 124 C 74 128 74 134 78 138 Z" fill="url(#iconGold2)"/>
+    <!-- Nó Central -->
+    <path d="M 74 84 C 70 80 70 74 74 70 L 104 40 C 108 36 114 36 118 40 L 128 50 C 132 54 132 60 128 64 L 98 94 C 94 98 88 98 84 94 L 74 84 Z" fill="url(#iconGold1)"/>
   </g>
-  <text x="256" y="450" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="50" font-weight="900" fill="#bef264" text-anchor="middle" letter-spacing="4">ATM KOTA</text>
+
+  <!-- Assinatura Inferior -->
+  <text x="256" y="456" font-family="'Sora', 'Manrope', system-ui, sans-serif" font-size="34" font-weight="800" fill="url(#iconGold1)" text-anchor="middle" letter-spacing="4">KUSANGA KITADI</text>
 </svg>

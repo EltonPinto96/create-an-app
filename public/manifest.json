@@ -1,11 +1,11 @@
 {
-  "name": "ATM KOTA — Saiba onde levantar",
-  "short_name": "ATM KOTA",
-  "description": "Consulte a disponibilidade de caixas automáticos (ATMs) em tempo real em Luanda, Angola.",
+  "name": "KUSANGA KITADI — A força está na ligação",
+  "short_name": "Kusanga Kitadi",
+  "description": "Localize caixas automáticos (ATM) e consulte a disponibilidade de numerário em tempo real em Luanda, Angola. Saiba onde levantar.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#15803d",
+  "background_color": "#F7F4EC",
+  "theme_color": "#26362F",
   "orientation": "portrait-primary",
   "lang": "pt-AO",
   "icons": [

@@ -1,9 +1,14 @@
 /*
- * Tailwind v4 entry: config lives here, with no tailwind.config.js or PostCSS plugin.
- * - Keep every @import in this top block, above @theme and the rest of the file. Install an
- *   npm package before @importing its CSS. Never @import a remote URL (web fonts, CDN CSS): the
- *   build resolves @import from the filesystem. Load those with a <link> in the head() of
- *   src/routes/__root.tsx and name the family in a --font-* token in @theme inline below.
+ * Kusanga Kitadi — Design System Oficial (Tecnologia Africana Premium)
+ * Tipografia: Sora (Títulos/Marca) + Manrope (Interface/Textos)
+ * Paleta Oficial:
+ * - Verde floresta: #26362F (Identidade principal / navegação)
+ * - Ouro artesanal: #C09A5B (Destaques premium / detalhes nobres)
+ * - Terracota: #A75F43 (Detalhes gráficos)
+ * - Areia natural: #E9DCC4 (Superfícies secundárias)
+ * - Carvão: #343D3A (Textos principais)
+ * - Marfim: #F7F4EC (Fundo principal)
+ * - Verde suave: #718477 (Elementos secundários)
  */
 @import "tailwindcss" source(none);
 @source "../src";
@@ -12,27 +17,9 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/*
- * Design system definition.
- *
- * The design lives in this file: oklch color tokens on the shadcn variables
- * (--background, --foreground, --primary, --secondary, --muted, --accent, ...) plus
- * new tokens as needed, font tokens, and custom styles and animations.
- *
- * The @theme inline block maps CSS custom properties to Tailwind utility
- * classes (e.g. --color-primary -> bg-primary, text-primary).
- *
- * The :root and .dark blocks define the actual color values using oklch.
- * All colors MUST use oklch format.
- *
- * To add a new semantic color:
- * 1. Add the variable to :root (light value) and .dark (dark value)
- * 2. Register it in @theme inline as --color-<name>: var(--<name>)
- */
-
 @theme inline {
-  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Outfit", "DM Sans", ui-sans-serif, sans-serif;
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Sora", "Manrope", ui-sans-serif, sans-serif;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -60,21 +47,17 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-ring-offset-background: var(--background);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-brand-lime: var(--brand-lime);
-  --color-brand-ink: var(--brand-ink);
+
+  /* Tokens Kusanga Kitadi */
+  --color-brand-forest: var(--brand-forest);
+  --color-brand-gold: var(--brand-gold);
+  --color-brand-terracotta: var(--brand-terracotta);
+  --color-brand-sand: var(--brand-sand);
+  --color-brand-charcoal: var(--brand-charcoal);
+  --color-brand-ivory: var(--brand-ivory);
+  --color-brand-softgreen: var(--brand-softgreen);
+
+  /* Cores Funcionais ATM */
   --color-status-available: var(--status-available);
   --color-status-empty: var(--status-empty);
   --color-status-offline: var(--status-offline);
@@ -83,99 +66,106 @@
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(0.992 0.004 235);
-  --foreground: oklch(0.23 0.035 246);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.23 0.035 246);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.23 0.035 246);
-  --primary: oklch(0.29 0.055 247);
-  --primary-foreground: oklch(0.985 0.006 240);
-  --secondary: oklch(0.95 0.018 160);
-  --secondary-foreground: oklch(0.29 0.055 247);
-  --muted: oklch(0.96 0.007 235);
-  --muted-foreground: oklch(0.51 0.025 245);
-  --accent: oklch(0.95 0.018 160);
-  --accent-foreground: oklch(0.29 0.055 247);
-  --destructive: oklch(0.57 0.205 27);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(0.91 0.012 240);
-  --input: oklch(0.89 0.014 240);
-  --ring: oklch(0.56 0.09 166);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.984 0.003 247.858);
-  --sidebar-foreground: oklch(0.129 0.042 264.695);
-  --sidebar-primary: oklch(0.208 0.042 265.755);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.968 0.007 247.896);
-  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
-  --sidebar-border: oklch(0.929 0.013 255.508);
-  --sidebar-ring: oklch(0.704 0.04 256.788);
-  --brand-lime: oklch(0.87 0.17 150);
-  --brand-ink: oklch(0.24 0.05 247);
-  --status-available: oklch(0.48 0.13 153);
-  --status-empty: oklch(0.56 0.21 27);
-  --status-offline: oklch(0.48 0.018 250);
-  --status-stale: oklch(0.68 0.15 75);
+  /* Fundo principal: Marfim */
+  --background: oklch(0.965 0.012 88); /* #F7F4EC */
+  /* Textos principais: Carvão */
+  --foreground: oklch(0.32 0.015 165); /* #343D3A */
+
+  --card: oklch(0.995 0.005 85);
+  --card-foreground: oklch(0.32 0.015 165);
+  --popover: oklch(0.995 0.005 85);
+  --popover-foreground: oklch(0.32 0.015 165);
+
+  /* Identidade principal: Verde floresta #26362F */
+  --primary: oklch(0.31 0.038 160);
+  --primary-foreground: oklch(0.965 0.012 88);
+
+  /* Superfícies secundárias: Areia natural #E9DCC4 */
+  --secondary: oklch(0.89 0.03 85);
+  --secondary-foreground: oklch(0.31 0.038 160);
+
+  --muted: oklch(0.92 0.02 85);
+  --muted-foreground: oklch(0.57 0.025 155); /* Verde suave #718477 */
+
+  --accent: oklch(0.89 0.03 85);
+  --accent-foreground: oklch(0.31 0.038 160);
+
+  --destructive: oklch(0.53 0.22 28); /* Vermelho funcional */
+  --destructive-foreground: oklch(0.985 0.005 88);
+
+  --border: oklch(0.88 0.02 85); /* Bordas suaves cor areia */
+  --input: oklch(0.86 0.02 85);
+  --ring: oklch(0.69 0.105 82); /* Ouro artesanal */
+
+  /* Cores Oficiais Kusanga Kitadi */
+  --brand-forest: oklch(0.31 0.038 160); /* #26362F */
+  --brand-gold: oklch(0.69 0.105 82); /* #C09A5B */
+  --brand-terracotta: oklch(0.55 0.125 45); /* #A75F43 */
+  --brand-sand: oklch(0.89 0.03 85); /* #E9DCC4 */
+  --brand-charcoal: oklch(0.32 0.015 165); /* #343D3A */
+  --brand-ivory: oklch(0.965 0.012 88); /* #F7F4EC */
+  --brand-softgreen: oklch(0.57 0.025 155); /* #718477 */
+
+  /* Cores funcionais dos ATM */
+  --status-available: oklch(0.52 0.15 145); /* Verde com dinheiro #2E7D32 */
+  --status-empty: oklch(0.53 0.22 28); /* Vermelho sem dinheiro #C62828 */
+  --status-offline: oklch(0.50 0.03 220); /* Cinzento fora de serviço #546E7A */
+  --status-stale: oklch(0.65 0.16 70); /* Amarelo/Âmbar #D97706 */
 }
 
 .dark {
-  --background: oklch(0.129 0.042 264.695);
-  --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.208 0.042 265.755);
-  --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.208 0.042 265.755);
-  --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
-  --secondary: oklch(0.279 0.041 260.031);
-  --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.279 0.041 260.031);
-  --muted-foreground: oklch(0.704 0.04 256.788);
-  --accent: oklch(0.279 0.041 260.031);
-  --accent-foreground: oklch(0.984 0.003 247.858);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.208 0.042 265.755);
-  --sidebar-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.279 0.041 260.031);
-  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.551 0.027 264.364);
+  --background: oklch(0.20 0.025 160); /* Verde floresta escurecido de fundo */
+  --foreground: oklch(0.965 0.012 88); /* Marfim */
+  --card: oklch(0.24 0.028 160);
+  --card-foreground: oklch(0.965 0.012 88);
+  --popover: oklch(0.24 0.028 160);
+  --popover-foreground: oklch(0.965 0.012 88);
+  --primary: oklch(0.69 0.105 82); /* Ouro artesanal como principal no escuro */
+  --primary-foreground: oklch(0.20 0.025 160);
+  --secondary: oklch(0.28 0.032 160);
+  --secondary-foreground: oklch(0.965 0.012 88);
+  --muted: oklch(0.28 0.032 160);
+  --muted-foreground: oklch(0.68 0.025 155);
+  --accent: oklch(0.28 0.032 160);
+  --accent-foreground: oklch(0.965 0.012 88);
+  --destructive: oklch(0.58 0.22 28);
+  --destructive-foreground: oklch(0.985 0.005 88);
+  --border: oklch(0.30 0.025 160);
+  --input: oklch(0.30 0.025 160);
+  --ring: oklch(0.69 0.105 82);
+
+  --brand-forest: oklch(0.31 0.038 160);
+  --brand-gold: oklch(0.69 0.105 82);
+  --brand-terracotta: oklch(0.55 0.125 45);
+  --brand-sand: oklch(0.89 0.03 85);
+  --brand-charcoal: oklch(0.32 0.015 165);
+  --brand-ivory: oklch(0.965 0.012 88);
+  --brand-softgreen: oklch(0.57 0.025 155);
+
+  --status-available: oklch(0.58 0.16 145);
+  --status-empty: oklch(0.58 0.22 28);
+  --status-offline: oklch(0.55 0.03 220);
+  --status-stale: oklch(0.70 0.16 70);
 }
 
 .status-available {
   color: var(--status-available);
-  background-color: color-mix(in oklab, var(--status-available) 11%, var(--background));
+  background-color: color-mix(in oklab, var(--status-available) 12%, var(--background));
 }
 
 .status-empty {
   color: var(--status-empty);
-  background-color: color-mix(in oklab, var(--status-empty) 10%, var(--background));
+  background-color: color-mix(in oklab, var(--status-empty) 12%, var(--background));
 }
 
 .status-offline {
   color: var(--status-offline);
-  background-color: color-mix(in oklab, var(--status-offline) 10%, var(--background));
+  background-color: color-mix(in oklab, var(--status-offline) 12%, var(--background));
 }
 
 .status-stale {
   color: var(--status-stale);
-  background-color: color-mix(in oklab, var(--status-stale) 13%, var(--background));
+  background-color: color-mix(in oklab, var(--status-stale) 14%, var(--background));
 }
 
 @layer base {
@@ -186,5 +176,10 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    font-family: var(--font-sans);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
   }
 }

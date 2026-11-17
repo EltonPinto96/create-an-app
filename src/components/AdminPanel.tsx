@@ -170,24 +170,33 @@ export function AdminPanel({ onBackToApp }: AdminPanelProps) {
       {/* Cabeçalho do Painel Admin */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-border pb-5">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
-              <ShieldCheck className="size-4" />
+          <div className="flex items-center gap-2.5">
+            <span className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+              <ShieldCheck className="size-5 text-[#C09A5B]" />
             </span>
-            <h1 className="font-display text-2xl font-bold tracking-tight">Painel de Moderação</h1>
-            <Badge variant="outline" className="border-primary/30 text-primary">Admin</Badge>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">Painel de Moderação</h1>
+                <Badge variant="outline" className="border-[#C09A5B]/40 text-[#C09A5B] bg-[#C09A5B]/10 font-bold text-[10px]">
+                  Kusanga Admin
+                </Badge>
+              </div>
+              <p className="text-[11px] text-[#C09A5B] font-semibold">
+                KUSANGA KITADI · A força está na ligação.
+              </p>
+            </div>
           </div>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Revê as sugestões comunitárias de novos ATMs e aprova a sua publicação em Luanda.
+          <p className="mt-2 text-xs text-muted-foreground">
+            Revê as sugestões comunitárias de novos caixas automáticos e gere a rede de bancos em Luanda.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={loadData} disabled={isLoading}>
+          <Button variant="outline" size="sm" onClick={loadData} disabled={isLoading} className="rounded-xl text-xs font-semibold">
             <RefreshCw className={`mr-1.5 size-3.5 ${isLoading ? "animate-spin" : ""}`} />
             Atualizar
           </Button>
-          <Button variant="secondary" size="sm" onClick={onBackToApp}>
+          <Button variant="secondary" size="sm" onClick={onBackToApp} className="rounded-xl text-xs font-bold">
             Voltar à app
           </Button>
         </div>

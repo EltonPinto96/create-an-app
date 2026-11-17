@@ -1,23 +1,36 @@
-import { CircleHelp, Clock3, ExternalLink, Heart, Navigation, X } from "lucide-react";
+import {
+  Banknote,
+  CheckCircle2,
+  Clock3,
+  ExternalLink,
+  Heart,
+  MapPin,
+  Navigation,
+  ShieldCheck,
+  AlertTriangle,
+  XCircle,
+  HelpCircle,
+  X,
+  Share2,
+  MessageSquare,
+  Building2,
+  Info,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { type DemoAtm } from "@/lib/atm-demo-data";
 import { type RealAtm } from "@/components/AtmCard";
-import { openDirections } from "@/lib/google-maps";
+import { openDirections, buildMapsUrl } from "@/lib/google-maps";
 
 type AtmDetailsData = DemoAtm | RealAtm;
 
 function isDemoAtm(atm: AtmDetailsData): atm is DemoAtm {
-  return !("isReal" in atm) || (atm as RealAtm).isReal === false || (atm as RealAtm).isReal === undefined;
+  return (
+    !("isReal" in atm) ||
+    (atm as RealAtm).isReal === false ||
+    (atm as RealAtm).isReal === undefined
+  );
 }
-
-const statusLabel: Record<string, { label: string; className: string }> = {
-  available: { label: "Reportado com dinheiro", className: "status-available" },
-  "no-cash": { label: "Reportado sem dinheiro", className: "status-empty" },
-  "out-of-service": { label: "Fora de serviço", className: "status-offline" },
-  stale: { label: "Informação desactualizada", className: "status-stale" },
-  pending: { label: "Aguarda aprovação", className: "status-stale" },
-};
 
 export interface ReportHistory {
   id: string;
@@ -36,25 +49,65 @@ interface AtmDetailsProps {
   onToggleFavorite?: () => void;
 }
 
-function DemoNotice() {
-  return (
-    <div className="flex items-start gap-3 border border-status-stale/20 bg-status-stale/10 px-4 py-3.5">
-      <CircleHelp className="mt-0.5 size-4 shrink-0 text-status-stale" aria-hidden="true" />
-      <p className="text-xs leading-5 text-foreground/80">
-        <strong className="font-semibold">Dados de demonstração.</strong> ATM, locais e reportes abaixo são
-        fictícios e não indicam disponibilidade real.
-      </p>
-    </div>
-  );
-}
+const statusMeta: Record<
+  string,
+  {
+    cashTitle: string;
+    cashDesc: string;
+    opTitle: string;
+    color: string;
+    icon: typeof CheckCircle2;
+  }
+> = {
+  available: {
+    cashTitle: "Reportado com dinheiro",
+    cashDesc: "Utilizadores confirmaram levantamentos com sucesso recentemente.",
+    opTitle: "Equipamento Operacional",
+    color: "text-status-available bg-status-available/10 border-status-available/30",
+    icon: CheckCircle2,
+  },
+  "no-cash": {
+    cashTitle: "Reportado sem notas",
+    cashDesc: "O terminal está ligado, mas sem notas disponíveis para levantamento.",
+    opTitle: "Equipamento Operacional (sem notas)",
+    color: "text-status-empty bg-status-empty/10 border-status-empty/30",
+    icon: AlertTriangle,
+  },
+  "out-of-service": {
+    cashTitle: "Terminal Indisponível",
+    cashDesc: "Equipamento com ecrã desligado, erro de sistema ou em manutenção técnica.",
+    opTitle: "Fora de Serviço",
+    color: "text-status-offline bg-status-offline/10 border-status-offline/30",
+    icon: XCircle,
+  },
+  stale: {
+    cashTitle: "Sem informação recente",
+    cashDesc: "O último reporte expirou. A tua confirmação presencial será muito útil.",
+    opTitle: "Estado Não Confirmado",
+    color: "text-status-stale bg-status-stale/10 border-status-stale/30",
+    icon: HelpCircle,
+  },
+};
 
-export function AtmDetails({ atm, onClose, onAccount, onReport, reportHistory }: AtmDetailsProps) {
+export function AtmDetails({
+  atm,
+  onClose,
+  onAccount,
+  onReport,
+  reportHistory,
+  isFavorite,
+  onToggleFavorite,
+}: AtmDetailsProps) {
   const isDemo = isDemoAtm(atm);
   const real = atm as RealAtm;
-  const status = statusLabel[atm.availability] ?? statusLabel.stale;
+  const meta = statusMeta[atm.availability] ?? statusMeta.stale;
+  const StatusIcon = meta.icon;
 
   const mapsUrl = !isDemo
-    ? (real.maps_url ?? (real.lat !== undefined ? `https://maps.google.com/maps?q=${real.lat},${real.lng}` : undefined))
+    ? real.maps_url ??
+      (real.lat !== undefined
+        ? buildMapsUrl(real.lat, real.lng ?? 13.23, atm.name)
+        : undefined)
     : undefined;
 
   function handleDirections() {
@@ -63,9 +116,14 @@ export function AtmDetails({ atm, onClose, onAccount, onReport, reportHistory }:
     }
   }
 
+  // Decomposição de endereço e município
+  const areaParts = atm.area.split(",");
+  const neighborhood = areaParts[0]?.trim() || "Luanda";
+  const municipality = areaParts[1]?.trim() || "Município de Luanda";
+
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/35 p-0 sm:items-center sm:p-5"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/40 backdrop-blur-xs p-0 sm:items-center sm:p-5 animate-in fade-in-50"
       role="presentation"
       onClick={onClose}
     >
@@ -73,154 +131,217 @@ export function AtmDetails({ atm, onClose, onAccount, onReport, reportHistory }:
         role="dialog"
         aria-modal="true"
         aria-labelledby="atm-detail-title"
-        className="w-full max-w-lg border border-border bg-background p-5 shadow-xl sm:p-7"
+        className="w-full max-w-xl max-h-[90vh] flex flex-col rounded-t-3xl sm:rounded-3xl border border-border bg-background p-6 shadow-2xl overflow-y-auto animate-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Cabeçalho */}
-        <div className="mb-5 flex items-start justify-between gap-4">
-          <div>
-            <div className="mb-3 flex flex-wrap items-center gap-2">
+        <div className="flex items-start justify-between gap-4 pb-4 border-b border-border">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="font-display text-xs font-bold uppercase tracking-wider text-[#C09A5B]">
+                {atm.bank}
+              </span>
               {isDemo ? (
-                <Badge variant="outline" className="rounded-sm">Amostra fictícia</Badge>
-              ) : (
-                <Badge variant="outline" className="rounded-sm border-primary/30 text-primary">Reporte real</Badge>
-              )}
-              {!isDemo && real.expiresIn && (
-                <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Clock3 className="size-3" aria-hidden="true" />
-                  {real.expiresIn}
+                <span className="rounded-full border border-border px-2 py-0.5 text-[9px] font-semibold uppercase text-muted-foreground">
+                  Amostra Fictícia
                 </span>
+              ) : (
+                <Badge
+                  variant="outline"
+                  className="rounded-full border-primary/30 bg-primary/5 text-primary text-[10px] font-semibold"
+                >
+                  <ShieldCheck className="mr-1 size-3 text-[#C09A5B]" />
+                  Localização Validada
+                </Badge>
               )}
             </div>
-            <h2 id="atm-detail-title" className="font-display text-2xl font-semibold">
+
+            <h2
+              id="atm-detail-title"
+              className="font-display text-2xl font-bold tracking-tight text-foreground"
+            >
               {atm.name}
             </h2>
-            <p className="mt-1 text-sm text-muted-foreground">{atm.bank}</p>
+            <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+              <MapPin className="size-3.5 text-[#C09A5B] shrink-0" />
+              {atm.area}
+            </p>
           </div>
-          <div className="flex items-center gap-1 -mr-2 -mt-2">
+
+          <div className="flex items-center gap-1 -mr-1 -mt-1 shrink-0">
             {onToggleFavorite && (
               <Button
                 variant="ghost"
                 size="icon"
-                className="size-9 text-muted-foreground hover:text-red-500"
+                className="size-9 rounded-full text-muted-foreground hover:text-[#C09A5B] hover:bg-secondary/70"
                 aria-label={isFavorite ? "Remover dos favoritos" : "Guardar nos favoritos"}
-                title={isFavorite ? "Remover dos favoritos" : "Guardar nos favoritos"}
                 onClick={onToggleFavorite}
               >
-                <Heart className={`size-4 ${isFavorite ? "fill-red-500 text-red-500" : ""}`} />
+                <Heart
+                  className={`size-5 transition-colors ${
+                    isFavorite ? "fill-[#C09A5B] text-[#C09A5B]" : ""
+                  }`}
+                />
               </Button>
             )}
-            <Button variant="ghost" size="icon" className="size-9" aria-label="Fechar detalhes" onClick={onClose}>
-              <X className="size-4" />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-9 rounded-full text-muted-foreground hover:bg-secondary/70"
+              aria-label="Fechar detalhes"
+              onClick={onClose}
+            >
+              <X className="size-5" />
             </Button>
           </div>
         </div>
 
-        {isDemo && <DemoNotice />}
+        {/* Separador de Dois Estados Independentes (Conforme Requisito do Kusanga Kitadi) */}
+        <div className="mt-5 space-y-3">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            Estado Actual do ATM
+          </h4>
 
-        {/* Dados principais */}
-        <dl className="my-5 divide-y divide-border border-y border-border text-sm">
-          <div className="flex items-center justify-between gap-4 py-3">
-            <dt className="text-muted-foreground">Localização</dt>
-            <dd className="text-right">{atm.area}</dd>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {/* 1. Disponibilidade de Numerário */}
+            <div className="rounded-2xl border border-border bg-card p-4 shadow-2xs">
+              <div className="flex items-center gap-2 mb-2">
+                <span className={`flex size-7 items-center justify-center rounded-lg border ${meta.color}`}>
+                  <StatusIcon className="size-4" />
+                </span>
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  1. Numerário
+                </span>
+              </div>
+              <p className="font-display font-bold text-base text-foreground">
+                {meta.cashTitle}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                {meta.cashDesc}
+              </p>
+            </div>
+
+            {/* 2. Estado Operacional do Equipamento */}
+            <div className="rounded-2xl border border-border bg-card p-4 shadow-2xs">
+              <div className="flex items-center gap-2 mb-2">
+                <span
+                  className={`flex size-7 items-center justify-center rounded-lg border ${
+                    atm.availability === "out-of-service"
+                      ? "text-status-offline bg-status-offline/10 border-status-offline/30"
+                      : "text-status-available bg-status-available/10 border-status-available/30"
+                  }`}
+                >
+                  <Banknote className="size-4" />
+                </span>
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  2. Equipamento
+                </span>
+              </div>
+              <p className="font-display font-bold text-base text-foreground">
+                {meta.opTitle}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                {atm.availability === "out-of-service"
+                  ? "O terminal não está a processar operações no momento."
+                  : "Sistema bancário e leitor de cartões em funcionamento normal."}
+              </p>
+            </div>
           </div>
-          <div className="flex items-center justify-between gap-4 py-3">
-            <dt className="text-muted-foreground">{isDemo ? "Estado do exemplo" : "Estado actual"}</dt>
-            <dd className={`text-right font-medium ${status.className}`}>{status.label}</dd>
+        </div>
+
+        {/* Aviso de Origem Comunitária */}
+        <div className="mt-4 rounded-xl border border-border/80 bg-secondary/40 p-3.5 flex items-start gap-2.5 text-xs text-muted-foreground">
+          <Info className="size-4 text-[#C09A5B] shrink-0 mt-0.5" />
+          <p className="leading-relaxed">
+            <strong className="text-foreground font-semibold">Origem colaborativa:</strong> A
+            informação de disponibilidade resulta exclusivamente de reportes presenciais de
+            cidadãos em Luanda. Não constitui confirmação oficial das instituições bancárias.
+          </p>
+        </div>
+
+        {/* Informações de Localização e Dados Técnicos */}
+        <div className="mt-5 rounded-2xl border border-border bg-card p-4 space-y-2.5 text-xs">
+          <div className="flex items-center justify-between py-1 border-b border-border/60">
+            <span className="text-muted-foreground">Instituição Bancária:</span>
+            <span className="font-bold text-foreground">{atm.bank}</span>
           </div>
-          <div className="flex items-center justify-between gap-4 py-3">
-            <dt className="text-muted-foreground">{isDemo ? "Última confirmação fictícia" : "Última confirmação"}</dt>
-            <dd className="text-right">{atm.updated}</dd>
+          <div className="flex items-center justify-between py-1 border-b border-border/60">
+            <span className="text-muted-foreground">Bairro / Zona:</span>
+            <span className="font-semibold text-foreground">{neighborhood}</span>
           </div>
-          <div className="flex items-center justify-between gap-4 py-3">
-            <dt className="text-muted-foreground">{isDemo ? "Confirmações de exemplo" : "Confirmações"}</dt>
-            <dd className="text-right">{atm.confirmations}</dd>
+          <div className="flex items-center justify-between py-1 border-b border-border/60">
+            <span className="text-muted-foreground">Município:</span>
+            <span className="font-semibold text-foreground">{municipality}</span>
           </div>
-          {!isDemo && real.expiresIn && (
-            <div className="flex items-center justify-between gap-4 py-3">
-              <dt className="text-muted-foreground">Reporte expira</dt>
-              <dd className="text-right text-status-stale">{real.expiresIn}</dd>
+          {!isDemo && real.lat !== undefined && real.lng !== undefined && (
+            <div className="flex items-center justify-between py-1 border-b border-border/60">
+              <span className="text-muted-foreground">Coordenadas GPS:</span>
+              <span className="font-mono text-muted-foreground">
+                {real.lat.toFixed(5)}, {real.lng.toFixed(5)}
+              </span>
             </div>
           )}
-        </dl>
+          <div className="flex items-center justify-between py-1">
+            <span className="text-muted-foreground">Última confirmação:</span>
+            <span className="font-semibold text-foreground">{atm.updated}</span>
+          </div>
+        </div>
 
-        {/* Histórico de reportes (dados reais) */}
-        {!isDemo && reportHistory && reportHistory.length > 0 && (
-          <div className="mb-5">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Histórico de reportes
-            </p>
-            <ul className="divide-y divide-border border border-border">
-              {reportHistory.slice(0, 3).map((r) => {
-                const st = statusLabel[r.availability] ?? statusLabel.stale;
-                return (
-                  <li key={r.id} className="flex items-center justify-between gap-3 px-3 py-2.5 text-xs">
-                    <span className={`font-medium ${st.className}`}>{st.label}</span>
-                    <span className="text-muted-foreground">{r.source}</span>
-                    <span className="text-muted-foreground">{r.confirmedAt}</span>
-                  </li>
-                );
-              })}
-            </ul>
+        {/* Histórico de Reportes (quando disponível) */}
+        {reportHistory && reportHistory.length > 0 && (
+          <div className="mt-5 space-y-2">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Histórico de Reportes Recentes
+            </h4>
+            <div className="space-y-1.5">
+              {reportHistory.map((rep) => (
+                <div
+                  key={rep.id}
+                  className="flex items-center justify-between rounded-xl border border-border/70 bg-card px-3.5 py-2 text-xs"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="size-2 rounded-full bg-status-available" />
+                    <span className="font-medium text-foreground">{rep.source}</span>
+                  </div>
+                  <span className="text-muted-foreground text-[11px]">{rep.confirmedAt}</span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
-        {/* Bloco de Confirmação e Avaliação Comunitária */}
-        <div className="mb-4 rounded-lg border border-primary/25 bg-primary/5 p-3.5">
-          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-xs font-semibold text-foreground">
-                Estiveste ou estás neste ATM?
-              </p>
-              <p className="text-[11px] text-muted-foreground">
-                Ajuda os próximos cidadãos confirmando se conseguiste levantar.
-              </p>
-            </div>
-            {onReport && (
-              <Button
-                size="sm"
-                className="shrink-0 bg-primary font-semibold text-primary-foreground hover:bg-primary/90"
-                onClick={onReport}
-              >
-                Deixar avaliação
-              </Button>
-            )}
-          </div>
-        </div>
-
-        <p className="mb-4 text-xs leading-5 text-muted-foreground">
-          {isDemo
-            ? "As confirmações comunitárias não garantem dinheiro disponível. Estes dados são exclusivamente ilustrativos."
-            : "Os reportes comunitários não garantem disponibilidade. Verifique sempre antes de se deslocar."}
-        </p>
-
-        {/* Acções */}
-        <div className="flex flex-col gap-2 sm:flex-row">
-          {/* Ver no Google Maps */}
-          {mapsUrl ? (
-            <a
-              href={mapsUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex h-9 flex-1 items-center justify-center gap-2 rounded-md border border-border bg-background px-4 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
+        {/* Ações / Botões Principais */}
+        <div className="mt-6 flex flex-col sm:flex-row items-center gap-3 pt-4 border-t border-border">
+          {onReport && (
+            <Button
+              className="w-full sm:flex-1 h-11 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs gap-2 shadow-sm"
+              onClick={onReport}
             >
-              <ExternalLink className="size-4" aria-hidden="true" />
-              Ver no Google Maps
-            </a>
-          ) : null}
-
-          {/* Como chegar */}
-          {!isDemo && real.lat !== undefined && (
-            <Button variant="outline" className="flex-1 rounded-md" onClick={handleDirections}>
-              <Navigation className="size-4" aria-hidden="true" />
-              Como chegar
+              <MessageSquare className="size-4 text-[#C09A5B]" />
+              Confirmar Disponibilidade
             </Button>
           )}
 
-          {/* Reportar */}
-          {onReport && (
-            <Button variant="secondary" className="flex-1 rounded-md" onClick={onReport}>
-              Avaliar
+          {!isDemo && real.lat !== undefined && real.lng !== undefined && (
+            <Button
+              variant="outline"
+              className="w-full sm:w-auto h-11 rounded-xl border-border hover:border-[#C09A5B]/60 text-xs font-semibold gap-2"
+              onClick={handleDirections}
+            >
+              <Navigation className="size-4 text-[#C09A5B]" />
+              Traçar Rota no Mapa
+            </Button>
+          )}
+
+          {mapsUrl && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="hidden sm:inline-flex size-11 rounded-xl text-muted-foreground hover:text-foreground"
+              title="Abrir no Google Maps"
+              onClick={() => window.open(mapsUrl, "_blank", "noopener,noreferrer")}
+            >
+              <ExternalLink className="size-4" />
             </Button>
           )}
         </div>
