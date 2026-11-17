@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Banknote,
   Crosshair,
@@ -27,9 +27,15 @@ export function InteractiveMap({ atms, onSelectAtm }: InteractiveMapProps) {
   const markersLayerRef = useRef<any>(null);
 
   const [activeFilter, setActiveFilter] = useState<string>("all");
+  const [selectedBank, setSelectedBank] = useState<string>("all");
   const [selectedAtmInfo, setSelectedAtmInfo] = useState<AtmItem | null>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locating, setLocating] = useState(false);
+
+  const bankOptions = useMemo(() => {
+    const banks = Array.from(new Set(atms.map((a) => a.bank))).filter(Boolean);
+    return ["all", ...banks];
+  }, [atms]);
 
   // Filtra ATMs com coordenadas válidas
   const atmsWithCoords = atms
@@ -49,7 +55,8 @@ export function InteractiveMap({ atms, onSelectAtm }: InteractiveMapProps) {
       const fallback = sampleCoords[atm.id] || [-8.82 + index * 0.02, 13.22 + index * 0.02];
       return { ...atm, lat: fallback[0], lng: fallback[1] };
     })
-    .filter((atm) => activeFilter === "all" || atm.availability === activeFilter);
+    .filter((atm) => activeFilter === "all" || atm.availability === activeFilter)
+    .filter((atm) => selectedBank === "all" || atm.bank === selectedBank);
 
   useEffect(() => {
     if (typeof window === "undefined" || !mapContainerRef.current) return;
@@ -109,7 +116,7 @@ export function InteractiveMap({ atms, onSelectAtm }: InteractiveMapProps) {
       markersLayerRef.current.clearLayers();
       renderMarkers(L, mapInstanceRef.current, markersLayerRef.current);
     });
-  }, [atms, activeFilter]);
+  }, [atms, activeFilter, selectedBank]);
 
   function renderMarkers(L: any, map: any, layer: any) {
     if (atmsWithCoords.length === 0) return;
@@ -272,6 +279,24 @@ export function InteractiveMap({ atms, onSelectAtm }: InteractiveMapProps) {
           <span className="size-2 rounded-full bg-status-offline" />
           Avaria
         </button>
+
+        <div className="h-4 w-px bg-border mx-0.5" />
+
+        <select
+          value={selectedBank}
+          onChange={(e) => setSelectedBank(e.target.value)}
+          aria-label="Filtrar por banco"
+          className="rounded-md bg-secondary/80 px-2 py-1 text-xs font-medium text-foreground outline-none border border-border/50 cursor-pointer hover:bg-secondary transition-colors"
+        >
+          <option value="all">🏦 Todos os Bancos</option>
+          {bankOptions
+            .filter((b) => b !== "all")
+            .map((b) => (
+              <option key={b} value={b}>
+                {b}
+              </option>
+            ))}
+        </select>
       </div>
 
       {/* Botão de Localização do Utilizador */}
