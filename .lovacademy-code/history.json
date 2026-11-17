@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-11-17T08:28:38.761Z",
+  "updated_at": "2026-11-17T08:29:38.556Z",
   "messages": [
     {
       "role": "user",
@@ -107,6 +107,15 @@
     {
       "role": "assistant",
       "text": "Posso ajudar-te a planear e desenvolver o ATM KOTA. Por exemplo:\n\n- **Definir o modelo de dados** para ATM, reportes de disponibilidade e aprovações.\n- **Preparar a aplicação** para receber ATM e reportes, incluindo estados pendentes e validade de duas horas.\n- **Desenhar o fluxo de administração** para aprovar ou rejeitar contribuições.\n- **Orientar a configuração do Supabase** e das regras de acesso.\n- **Ajudar a organizar os dados** dos ATM que enviares, incluindo a localização e a hora de confirmação.\n\nNesta conversa, não alterei o projecto nem criei tabelas. Se quiseres, podemos começar por definir como deve funcionar a aprovação dos ATM e dos reportes."
+    },
+    {
+      "role": "user",
+      "text": "Definir o modelo de dados para ATM, reportes de disponibilidade e aprovações.\n\nexecute",
+      "attachments": []
+    },
+    {
+      "role": "assistant",
+      "text": "Claro. Posso definir o modelo de dados aqui, mas não consigo criá-lo no Supabase a partir desta conversa. Para implementar, preciso alterar o projeto, e esta solicitação está configurada como somente leitura.\n\nO modelo pode ter três tabelas:\n\n- **`atms`**: banco, identificação, endereço, município, bairro, latitude, longitude, fonte e estado de aprovação.\n- **`availability_reports`**: ATM, autor, disponibilidade (`tem_dinheiro`, `sem_dinheiro` ou `fora_de_servico`), horário da confirmação, estado (`pendente`, `aprovado` ou `rejeitado`) e horário de expiração — duas horas após a confirmação aprovada.\n- **`admin_reviews`**: reporte analisado, administrador responsável, decisão, observação e horário da decisão.\n\nAssim, a aprovação fica registada e a informação de disponibilidade só aparece na plataforma depois de aprovada, expirando duas horas após a confirmação. Se pedires a implementação numa solicitação de alteração, posso preparar as mudanças no formato esperado pelo aplicativo."
     }
   ]
 }
