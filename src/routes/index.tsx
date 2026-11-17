@@ -35,8 +35,9 @@ import { SubmitAtmForm, type SubmitAtmFormData } from "@/components/SubmitAtmFor
 import { SubmitReportForm, type SubmitReportFormData } from "@/components/SubmitReportForm";
 import { useApprovedAtms } from "@/lib/atm-queries";
 import { supabase } from "@/lib/supabase";
+import { AdminPanel } from "@/components/AdminPanel";
 
-type Section = "home" | "map" | "search" | "favorites" | "profile";
+type Section = "home" | "map" | "search" | "favorites" | "profile" | "admin";
 type Filter = "all" | DemoAvailability;
 type AtmData = DemoAtm | RealAtm;
 
@@ -170,10 +171,54 @@ function Index() {
   }
 
   async function handleSubmitAtm(data: SubmitAtmFormData): Promise<void> {
-    // Com Supabase configurado, importar e chamar useSubmitAtm
-    // Por agora, simula sucesso após 800ms
-    await new Promise((r) => setTimeout(r, 800));
-    console.info("ATM submetido (modo demo):", data);
+    if (hasSupabase) {
+      try {
+        let bankId: string | null = null;
+        const { data: existingBanks } = await supabase
+          .from("banks")
+          .select("id")
+          .ilike("name", data.bank)
+          .limit(1);
+
+        if (existingBanks && existingBanks.length > 0) {
+          bankId = existingBanks[0].id;
+        } else {
+          const { data: newBank } = await supabase
+            .from("banks")
+            .insert({ name: data.bank })
+            .select("id")
+            .single();
+          if (newBank) bankId = newBank.id;
+        }
+
+        if (!bankId) {
+          const { data: anyBank } = await supabase.from("banks").select("id").limit(1);
+          if (anyBank && anyBank.length > 0) bankId = anyBank[0].id;
+        }
+
+        if (bankId) {
+          const { error } = await supabase.from("atms").insert({
+            bank_id: bankId,
+            name: data.name,
+            address: data.address,
+            municipality: data.municipality,
+            neighborhood: data.neighborhood || null,
+            maps_url: data.maps_url,
+            lat: -8.83833,
+            lng: 13.23444,
+            status: "pending",
+          });
+
+          if (error) {
+            console.warn("Aviso ao submeter ATM no Supabase:", error.message);
+          } else {
+            console.info("ATM submetido com sucesso e a aguardar moderação!");
+          }
+        }
+      } catch (e) {
+        console.warn("Erro ao comunicar com Supabase:", e);
+      }
+    }
   }
 
   async function handleSubmitReport(data: SubmitReportFormData): Promise<void> {
@@ -247,6 +292,15 @@ function Index() {
             </Button>
             <Button
               variant="outline"
+              className="h-9 rounded-md px-3 text-xs gap-1.5 border-primary/30 text-primary hover:bg-primary/10 inline-flex"
+              onClick={() => setSection("admin")}
+              title="Abrir painel de moderação de administrador"
+            >
+              <ShieldCheck className="size-3.5" aria-hidden="true" />
+              Moderação
+            </Button>
+            <Button
+              variant="outline"
               className="hidden h-9 rounded-md px-3 text-xs sm:inline-flex"
               onClick={() => setSection("profile")}
             >
@@ -297,7 +351,11 @@ function Index() {
             <ProfileView
               onShowInfo={() => setShowInfo(true)}
               onSubmitAtm={() => setShowSubmitAtm(true)}
+              onOpenAdmin={() => setSection("admin")}
             />
+          )}
+          {section === "admin" && (
+            <AdminPanel onBackToApp={() => setSection("home")} />
           )}
 
           {/* Modal: detalhes de ATM */}
@@ -657,18 +715,44 @@ function AccountView({ kind, onProfile }: { kind: "favorites" | "profile"; onPro
 function ProfileView({
   onShowInfo,
   onSubmitAtm,
+  onOpenAdmin,
 }: {
   onShowInfo: () => void;
   onSubmitAtm: () => void;
+  onOpenAdmin: () => void;
 }) {
   return (
     <>
       <PageHeading eyebrow="A tua conta" title="Perfil" text="Acede ao teu perfil, contribuições e preferências." />
 
+      {/* Secção: Painel de Moderação (Admin) */}
+      <div className="mb-6 rounded-lg border border-primary/25 bg-primary/5 p-5 sm:p-6">
+        <div className="flex items-start gap-4">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
+            <ShieldCheck className="size-5" aria-hidden="true" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <p className="font-semibold text-foreground">Painel de Moderação</p>
+              <Badge variant="outline" className="border-primary/30 text-primary text-[10px]">
+                Administrador
+              </Badge>
+            </div>
+            <p className="mt-1 text-sm leading-5 text-muted-foreground">
+              Revê as sugestões de novos ATMs enviadas pelos cidadãos, verifica no Google Maps e aprova a publicação.
+            </p>
+            <Button className="mt-4 rounded-md font-semibold" onClick={onOpenAdmin}>
+              <ShieldCheck className="mr-1.5 size-4" />
+              Abrir Painel de Moderação
+            </Button>
+          </div>
+        </div>
+      </div>
+
       {/* Secção: Submeter ATM */}
       <div className="mb-6 border border-border bg-card p-5 sm:p-6">
         <div className="flex items-start gap-4">
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-md bg-secondary text-primary">
             <PlusCircle className="size-5" aria-hidden="true" />
           </span>
           <div className="min-w-0 flex-1">
@@ -676,7 +760,7 @@ function ProfileView({
             <p className="mt-1 text-sm leading-5 text-muted-foreground">
               Conheces um ATM que não está na lista? Submete-o para aprovação e ajuda a comunidade.
             </p>
-            <Button className="mt-4 rounded-md" onClick={onSubmitAtm}>
+            <Button variant="outline" className="mt-4 rounded-md" onClick={onSubmitAtm}>
               <PlusCircle className="size-4" aria-hidden="true" />
               Submeter ATM
             </Button>
