@@ -33,3 +33,4 @@ use the editor.
 
 - Keep the pilot interface in reusable route-adjacent components, with demonstration records isolated from live data and visibly labelled, so examples can never be mistaken for verified ATMs.
 - Keep the ATM KOTA first screen public and use its in-page navigation for the MVP's five areas, so unauthenticated ATM discovery remains available while account-dependent features are introduced later.
+- **Auto Git Sync:** A cada duas etapas/funcionalidades concluídas no projeto, realizar automaticamente um `git add`, `git commit` com mensagem descritiva e `git push origin main`, mantendo o repositório GitHub e o Lovable sempre sincronizados sem necessidade de lembrete do utilizador.
