@@ -158,6 +158,9 @@ export function InteractiveMap({ atms, onSelectAtm, onOpenNearby }: InteractiveM
       } else if (atm.availability === "out-of-service") {
         pinColor = "#546E7A"; // Cinzento fora de serviço
         symbolLabel = "!";
+      } else if (atm.availability === "uncertain") {
+        pinColor = "#D97706"; // Âmbar/Laranja (contraditório)
+        symbolLabel = "!";
       } else if (atm.availability === "stale") {
         pinColor = "#D97706"; // Âmbar
         symbolLabel = "?";

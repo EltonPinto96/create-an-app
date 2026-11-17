@@ -88,6 +88,13 @@ const statusMeta: Record<
     badgeClass: "text-status-stale bg-status-stale/10 border-status-stale/30",
     icon: HelpCircle,
   },
+  uncertain: {
+    cashLabel: "Informação Contraditória",
+    opLabel: "Reportes divergentes recentes",
+    className: "status-uncertain",
+    badgeClass: "text-amber-700 bg-amber-500/15 border-amber-500/40",
+    icon: AlertTriangle,
+  },
   pending: {
     cashLabel: "A aguardar moderação",
     opLabel: "Em verificação",

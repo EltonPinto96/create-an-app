@@ -15,7 +15,7 @@ export type Json =
 // ----------------------------------------------------------------
 
 export type AtmStatus = 'pending' | 'approved' | 'rejected'
-export type AvailabilityStatus = 'available' | 'no-cash' | 'out-of-service'
+export type AvailabilityStatus = 'available' | 'no-cash' | 'out-of-service' | 'uncertain' | 'stale'
 
 // ----------------------------------------------------------------
 // Row types (o que a base de dados devolve)
@@ -32,6 +32,9 @@ export interface ProfileRow {
   id: string
   display_name: string | null
   avatar_url: string | null
+  reputation_points?: number
+  reports_count?: number
+  reputation_badge?: string
   created_at: string
 }
 
@@ -63,6 +66,9 @@ export interface ReportRow {
   atm_id: string
   availability: AvailabilityStatus
   reported_by: string | null
+  notes_available?: string | null
+  queue_time?: string | null
+  comment?: string | null
   confirmed_at: string
   expires_at: string
   source: string | null
@@ -115,6 +121,9 @@ export interface ReportInsert {
   atm_id: string
   availability: AvailabilityStatus
   reported_by?: string | null
+  notes_available?: string | null
+  queue_time?: string | null
+  comment?: string | null
   confirmed_at?: string
   source?: string | null
   created_at?: string
@@ -263,5 +272,8 @@ export interface SubmitAtmPayload {
 export interface SubmitReportPayload {
   atm_id: string
   availability: AvailabilityStatus
+  notes_available?: string
+  queue_time?: string
+  comment?: string
   source?: string
 }

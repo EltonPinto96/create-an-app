@@ -136,6 +136,22 @@ function Index() {
       );
       return;
     }
+
+    // Proteção de confiança: Rate limit de 5 minutos por utilizador no mesmo ATM
+    const lastReportKey = `kusanga_rate_limit_${atm.id}_${user.id}`;
+    const lastReportTimestamp = localStorage.getItem(lastReportKey);
+    if (lastReportTimestamp) {
+      const diffMs = Date.now() - parseInt(lastReportTimestamp, 10);
+      const remainingMin = Math.ceil((5 * 60 * 1000 - diffMs) / 60000);
+      if (remainingMin > 0) {
+        toast.info("⏳ Reporte recente registado", {
+          description: `Já confirmaste este caixa recentemente. Para garantir a fiabilidade dos dados, aguarda cerca de ${remainingMin} min para novo reporte.`,
+          duration: 4500,
+        });
+        return;
+      }
+    }
+
     setReportingAtm(atm);
   }
 
@@ -343,11 +359,18 @@ function Index() {
       if (favoriteIds.includes(reportingAtm.id)) {
         simulateStatusChange(reportingAtm.id, data.availability);
       }
+      if (user) {
+        localStorage.setItem(`kusanga_rate_limit_${reportingAtm.id}_${user.id}`, Date.now().toString());
+      }
+
       if (hasSupabase && reportingAtm.id && reportingAtm.id.includes("-") && !reportingAtm.id.startsWith("sample")) {
         try {
           const { error } = await supabase.from("reports").insert({
             atm_id: reportingAtm.id,
             availability: data.availability,
+            notes_available: data.notesAvailable || null,
+            queue_time: data.queueTime || null,
+            comment: data.comment || null,
             confirmed_at: data.confirmedAt,
             source: data.feedbackSummary,
             reported_by: user?.id || null,
@@ -372,6 +395,23 @@ function Index() {
       );
       return;
     }
+
+    // Proteção de confiança: Rate limit de 5 minutos por utilizador no mesmo ATM
+    const lastReportKey = `kusanga_rate_limit_${atm.id}_${user.id}`;
+    const lastReportTimestamp = localStorage.getItem(lastReportKey);
+    if (lastReportTimestamp) {
+      const diffMs = Date.now() - parseInt(lastReportTimestamp, 10);
+      const remainingMin = Math.ceil((5 * 60 * 1000 - diffMs) / 60000);
+      if (remainingMin > 0) {
+        toast.info("⏳ Reporte recente registado", {
+          description: `Já confirmaste este caixa recentemente. Para garantir a fiabilidade dos dados, aguarda cerca de ${remainingMin} min.`,
+          duration: 4000,
+        });
+        return;
+      }
+    }
+
+    localStorage.setItem(lastReportKey, Date.now().toString());
 
     setCustomOverrides((prev) => ({
       ...prev,

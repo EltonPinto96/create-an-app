@@ -1,4 +1,4 @@
-export type DemoAvailability = "available" | "no-cash" | "out-of-service" | "stale";
+export type DemoAvailability = "available" | "no-cash" | "out-of-service" | "stale" | "uncertain";
 
 export type DemoAtm = {
   id: string;

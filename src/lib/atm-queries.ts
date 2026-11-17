@@ -42,7 +42,7 @@ async function fetchApprovedAtms(): Promise<AtmWithLatestReport[]> {
   if (atmsError) throw atmsError
   if (!atms || atms.length === 0) return []
 
-  // 2. Para cada ATM, buscar o report mais recente não expirado
+  // 2. Para cada ATM, buscar os reports activos
   const atmIds = atms.map((a) => a.id)
 
   const { data: reports, error: reportsError } = await supabase
@@ -54,22 +54,37 @@ async function fetchApprovedAtms(): Promise<AtmWithLatestReport[]> {
 
   if (reportsError) throw reportsError
 
-  // 3. Juntar: um report por ATM (o mais recente)
-  const latestReportByAtm = new Map(
-    (reports ?? []).reduce<[string, typeof reports[0]][]>((acc, r) => {
-      if (!acc.find(([id]) => id === r.atm_id)) {
-        acc.push([r.atm_id, r])
-      }
-      return acc
-    }, [])
-  )
+  // 3. Juntar: agrupar por ATM e verificar detecção de contradição nos últimos 45 minutos
+  const fortyFiveMinAgo = new Date(Date.now() - 45 * 60 * 1000).toISOString()
+  
+  const reportsByAtm = (reports ?? []).reduce<Record<string, typeof reports>>((acc, r) => {
+    if (!acc[r.atm_id]) acc[r.atm_id] = []
+    acc[r.atm_id].push(r)
+    return acc
+  }, {})
 
-  return atms.map((atm) => ({
-    ...atm,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    bank: (atm as any).bank,
-    latest_report: latestReportByAtm.get(atm.id) ?? null,
-  })) as AtmWithLatestReport[]
+  return atms.map((atm) => {
+    const atmReports = reportsByAtm[atm.id] ?? []
+    const latest = atmReports[0] ? { ...atmReports[0] } : null
+
+    if (latest) {
+      // Verificar se há reportes contraditórios nos últimos 45 min
+      const recent = atmReports.filter((r) => r.confirmed_at >= fortyFiveMinAgo)
+      const hasAvailable = recent.some((r) => r.availability === 'available')
+      const hasNoCash = recent.some((r) => r.availability === 'no-cash')
+
+      if (hasAvailable && hasNoCash) {
+        latest.availability = 'uncertain' as any
+      }
+    }
+
+    return {
+      ...atm,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      bank: (atm as any).bank,
+      latest_report: latest,
+    }
+  }) as AtmWithLatestReport[]
 }
 
 export function useApprovedAtms(options?: { enabled?: boolean }) {
@@ -135,6 +150,9 @@ async function submitReport(payload: SubmitReportPayload) {
       atm_id: payload.atm_id,
       availability: payload.availability,
       reported_by: session.session.user.id,
+      notes_available: payload.notes_available ?? null,
+      queue_time: payload.queue_time ?? null,
+      comment: payload.comment ?? null,
       confirmed_at: new Date().toISOString(),
       source: payload.source ?? null,
     })
@@ -154,6 +172,37 @@ export function useSubmitReport() {
       queryClient.invalidateQueries({ queryKey: atmQueryKeys.approved() })
       queryClient.invalidateQueries({ queryKey: atmQueryKeys.reports(data.atm_id) })
     },
+  })
+}
+
+// ============================================================
+// useAtmRecentReports
+// Histórico recente de reportes para o ATM (últimas 2 horas)
+// ============================================================
+
+export async function fetchAtmReports(atmId: string): Promise<ReportRow[]> {
+  if (!hasSupabase || !atmId) return []
+
+  const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
+
+  const { data, error } = await supabase
+    .from('reports')
+    .select('*')
+    .eq('atm_id', atmId)
+    .gt('confirmed_at', twoHoursAgo)
+    .order('confirmed_at', { ascending: false })
+    .limit(8)
+
+  if (error) throw error
+  return (data ?? []) as ReportRow[]
+}
+
+export function useAtmRecentReports(atmId: string | null | undefined) {
+  return useQuery({
+    queryKey: atmQueryKeys.reports(atmId || ''),
+    queryFn: () => fetchAtmReports(atmId || ''),
+    enabled: Boolean(atmId && hasSupabase),
+    staleTime: 1000 * 30, // 30 segundos
   })
 }
 

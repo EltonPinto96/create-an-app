@@ -168,6 +168,11 @@
   background-color: color-mix(in oklab, var(--status-stale) 14%, var(--background));
 }
 
+.status-uncertain {
+  color: oklch(0.68 0.18 55);
+  background-color: color-mix(in oklab, oklch(0.68 0.18 55) 15%, var(--background));
+}
+
 @layer base {
   * {
     border-color: var(--color-border);

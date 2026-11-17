@@ -23,6 +23,7 @@ import { type DemoAtm } from "@/lib/atm-demo-data";
 import { type RealAtm } from "@/components/AtmCard";
 import { openDirections, buildMapsUrl } from "@/lib/google-maps";
 import { openWhatsAppShare } from "@/lib/whatsapp-share";
+import { useAtmRecentReports } from "@/lib/atm-queries";
 
 type AtmDetailsData = DemoAtm | RealAtm;
 
@@ -90,6 +91,13 @@ const statusMeta: Record<
     color: "text-status-stale bg-status-stale/10 border-status-stale/30",
     icon: HelpCircle,
   },
+  uncertain: {
+    cashTitle: "Informação Contraditória",
+    cashDesc: "Foram submetidos reportes opostos nos últimos minutos. Recomenda-se confirmação no local.",
+    opTitle: "Estado Divergente / Em Confirmação",
+    color: "text-amber-700 bg-amber-500/15 border-amber-500/40",
+    icon: AlertTriangle,
+  },
 };
 
 export function AtmDetails({
@@ -106,6 +114,18 @@ export function AtmDetails({
   const real = atm as RealAtm;
   const meta = statusMeta[atm.availability] ?? statusMeta.stale;
   const StatusIcon = meta.icon;
+
+  const { data: dbReports } = useAtmRecentReports(!isDemo ? atm.id : null);
+  const activeReports = (reportHistory && reportHistory.length > 0)
+    ? reportHistory
+    : (dbReports ?? []).map((r) => ({
+        id: r.id,
+        availability: r.availability,
+        confirmedAt: new Date(r.confirmed_at).toLocaleTimeString("pt-AO", { hour: "2-digit", minute: "2-digit" }),
+        source: r.notes_available
+          ? `${r.availability === 'available' ? 'Com dinheiro' : 'Sem notas'} (${r.notes_available})`
+          : r.availability === 'available' ? 'Confirmado com dinheiro' : 'Reportado sem notas',
+      }));
 
   const mapsUrl = !isDemo
     ? real.maps_url ??
@@ -350,25 +370,47 @@ export function AtmDetails({
           </div>
         </div>
 
-        {/* Histórico de Reportes (quando disponível) */}
-        {reportHistory && reportHistory.length > 0 && (
+        {/* Histórico de Reportes Recentes da Comunidade */}
+        {activeReports && activeReports.length > 0 && (
           <div className="mt-5 space-y-2">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              Histórico de Reportes Recentes
-            </h4>
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <Users className="size-3.5 text-[#C09A5B]" />
+                Histórico Comunitário Recente
+              </h4>
+              <span className="text-[10px] text-muted-foreground">últimas 2 horas</span>
+            </div>
             <div className="space-y-1.5">
-              {reportHistory.map((rep) => (
-                <div
-                  key={rep.id}
-                  className="flex items-center justify-between rounded-xl border border-border/70 bg-card px-3.5 py-2 text-xs"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="size-2 rounded-full bg-status-available" />
-                    <span className="font-medium text-foreground">{rep.source}</span>
+              {activeReports.map((rep) => {
+                const isAvail = rep.availability === "available";
+                const isNoCash = rep.availability === "no-cash";
+                const isUncertain = rep.availability === "uncertain";
+
+                return (
+                  <div
+                    key={rep.id}
+                    className="flex items-center justify-between rounded-xl border border-border/70 bg-card px-3.5 py-2 text-xs"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span
+                        className={`size-2 shrink-0 rounded-full ${
+                          isAvail
+                            ? "bg-status-available"
+                            : isNoCash
+                            ? "bg-status-empty"
+                            : isUncertain
+                            ? "bg-amber-500 animate-pulse"
+                            : "bg-status-stale"
+                        }`}
+                      />
+                      <span className="font-medium text-foreground truncate">{rep.source}</span>
+                    </div>
+                    <span className="text-muted-foreground text-[11px] shrink-0 ml-2">
+                      {rep.confirmedAt}
+                    </span>
                   </div>
-                  <span className="text-muted-foreground text-[11px]">{rep.confirmedAt}</span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
