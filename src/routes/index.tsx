@@ -29,6 +29,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { demoAtms, type DemoAtm, type DemoAvailability } from "@/lib/atm-demo-data";
+import { REAL_ATMS_LUANDA } from "@/lib/real-atms-luanda";
 import { AtmCard, type RealAtm } from "@/components/AtmCard";
 import { AtmDetails } from "@/components/AtmDetails";
 import { SubmitAtmForm, type SubmitAtmFormData } from "@/components/SubmitAtmForm";
@@ -94,54 +95,42 @@ function Index() {
 
   const { data: dbAtms } = useApprovedAtms();
 
-  // ATM real validado (MDC Shopping Kicuxi) como fallback
-  const initialRealAtm: RealAtm = {
-    id: "real-mdc-01",
-    name: "ATM Center MDC",
-    bank: "Banco Atlântico",
-    area: "Bairro Kicuxi, Avenida Fidel de Castro Ruz - MDC Shopping Via Express",
-    availability: "available",
-    updated: "Confirmado hoje às 09:24",
-    confirmations: 1,
-    isReal: true,
-    lat: -8.97402,
-    lng: 13.35277,
-    maps_url: "https://maps.app.goo.gl/2fayq3ih5s2GgyoX6",
-    expiresIn: "Activo por 2 horas (até 11:24)",
-  };
-
   const atmList: AtmData[] = useMemo(() => {
-    if (dbAtms && dbAtms.length > 0) {
-      const mapped: RealAtm[] = dbAtms.map((item) => {
-        const avail = (item.latest_report?.availability ?? "stale") as RealAtm["availability"];
-        const expiresAt = item.latest_report?.expires_at ? new Date(item.latest_report.expires_at) : null;
-        let expiresIn: string | undefined;
-        if (expiresAt) {
-          const diffMs = expiresAt.getTime() - Date.now();
-          const diffMin = Math.round(diffMs / 60000);
-          expiresIn = diffMin > 0 ? `Expira em ${diffMin} min` : "Expirado";
-        }
+    const dbMapped: RealAtm[] = (dbAtms ?? []).map((item) => {
+      const avail = (item.latest_report?.availability ?? "stale") as RealAtm["availability"];
+      const expiresAt = item.latest_report?.expires_at ? new Date(item.latest_report.expires_at) : null;
+      let expiresIn: string | undefined;
+      if (expiresAt) {
+        const diffMs = expiresAt.getTime() - Date.now();
+        const diffMin = Math.round(diffMs / 60000);
+        expiresIn = diffMin > 0 ? `Expira em ${diffMin} min` : "Expirado";
+      }
 
-        return {
-          id: item.id,
-          name: item.name,
-          bank: item.bank?.name ?? "Banco",
-          area: `${item.neighborhood ? item.neighborhood + ", " : ""}${item.address}`,
-          availability: avail,
-          updated: item.latest_report?.confirmed_at
-            ? `Confirmado hoje às ${new Date(item.latest_report.confirmed_at).toLocaleTimeString("pt-AO", { hour: "2-digit", minute: "2-digit" })}`
-            : "Sem reportes recentes",
-          confirmations: item.latest_report ? 1 : 0,
-          isReal: true,
-          lat: item.lat,
-          lng: item.lng,
-          maps_url: item.maps_url ?? undefined,
-          expiresIn,
-        };
-      });
-      return [...mapped, ...demoAtms];
-    }
-    return [initialRealAtm, ...demoAtms];
+      return {
+        id: item.id,
+        name: item.name,
+        bank: item.bank?.name ?? "Banco",
+        area: `${item.neighborhood ? item.neighborhood + ", " : ""}${item.address}`,
+        availability: avail,
+        updated: item.latest_report?.confirmed_at
+          ? `Confirmado hoje às ${new Date(item.latest_report.confirmed_at).toLocaleTimeString("pt-AO", { hour: "2-digit", minute: "2-digit" })}`
+          : "Sem reportes recentes",
+        confirmations: item.latest_report ? 1 : 0,
+        isReal: true,
+        lat: item.lat,
+        lng: item.lng,
+        maps_url: item.maps_url ?? undefined,
+        expiresIn,
+      };
+    });
+
+    // Combinar com os 20 ATMs reais de Luanda (evita duplicados pelo nome)
+    const dbNames = new Set(dbMapped.map((a) => a.name.toLowerCase()));
+    const remainingReal = REAL_ATMS_LUANDA.filter(
+      (real) => !dbNames.has(real.name.toLowerCase())
+    );
+
+    return [...dbMapped, ...remainingReal];
   }, [dbAtms]);
 
   const visibleAtms = useMemo(() => {
