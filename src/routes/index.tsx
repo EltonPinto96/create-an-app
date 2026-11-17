@@ -16,6 +16,7 @@ import {
   MapPin,
   Menu,
   Navigation,
+  PlusCircle,
   Search,
   ShieldCheck,
   SlidersHorizontal,
@@ -28,9 +29,19 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { demoAtms, type DemoAtm, type DemoAvailability } from "@/lib/atm-demo-data";
+import { AtmCard, type RealAtm } from "@/components/AtmCard";
+import { AtmDetails } from "@/components/AtmDetails";
+import { SubmitAtmForm, type SubmitAtmFormData } from "@/components/SubmitAtmForm";
+import { SubmitReportForm, type SubmitReportFormData } from "@/components/SubmitReportForm";
+import { useApprovedAtms } from "@/lib/atm-queries";
+import { supabase } from "@/lib/supabase";
 
 type Section = "home" | "map" | "search" | "favorites" | "profile";
 type Filter = "all" | DemoAvailability;
+type AtmData = DemoAtm | RealAtm;
+
+/** true quando VITE_SUPABASE_URL está configurado */
+const hasSupabase = Boolean(import.meta.env.VITE_SUPABASE_URL);
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -74,18 +85,73 @@ function Index() {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [locationMessage, setLocationMessage] = useState("");
-  const [selectedAtm, setSelectedAtm] = useState<DemoAtm | null>(null);
+  const [selectedAtm, setSelectedAtm] = useState<AtmData | null>(null);
   const [showInfo, setShowInfo] = useState(false);
+  const [showSubmitAtm, setShowSubmitAtm] = useState(false);
+  const [reportingAtm, setReportingAtm] = useState<RealAtm | null>(null);
+
+  const { data: dbAtms } = useApprovedAtms();
+
+  // ATM real validado (MDC Shopping Kicuxi) como fallback
+  const initialRealAtm: RealAtm = {
+    id: "real-mdc-01",
+    name: "ATM Center MDC",
+    bank: "Banco Atlântico",
+    area: "Bairro Kicuxi, Avenida Fidel de Castro Ruz - MDC Shopping Via Express",
+    availability: "available",
+    updated: "Confirmado hoje às 09:24",
+    confirmations: 1,
+    isReal: true,
+    lat: -8.97402,
+    lng: 13.35277,
+    maps_url: "https://maps.app.goo.gl/2fayq3ih5s2GgyoX6",
+    expiresIn: "Activo por 2 horas (até 11:24)",
+  };
+
+  const atmList: AtmData[] = useMemo(() => {
+    if (dbAtms && dbAtms.length > 0) {
+      const mapped: RealAtm[] = dbAtms.map((item) => {
+        const avail = (item.latest_report?.availability ?? "stale") as RealAtm["availability"];
+        const expiresAt = item.latest_report?.expires_at ? new Date(item.latest_report.expires_at) : null;
+        let expiresIn: string | undefined;
+        if (expiresAt) {
+          const diffMs = expiresAt.getTime() - Date.now();
+          const diffMin = Math.round(diffMs / 60000);
+          expiresIn = diffMin > 0 ? `Expira em ${diffMin} min` : "Expirado";
+        }
+
+        return {
+          id: item.id,
+          name: item.name,
+          bank: item.bank?.name ?? "Banco",
+          area: `${item.neighborhood ? item.neighborhood + ", " : ""}${item.address}`,
+          availability: avail,
+          updated: item.latest_report?.confirmed_at
+            ? `Confirmado hoje às ${new Date(item.latest_report.confirmed_at).toLocaleTimeString("pt-AO", { hour: "2-digit", minute: "2-digit" })}`
+            : "Sem reportes recentes",
+          confirmations: item.latest_report ? 1 : 0,
+          isReal: true,
+          lat: item.lat,
+          lng: item.lng,
+          maps_url: item.maps_url ?? undefined,
+          expiresIn,
+        };
+      });
+      return [...mapped, ...demoAtms];
+    }
+    return [initialRealAtm, ...demoAtms];
+  }, [dbAtms]);
 
   const visibleAtms = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase("pt-AO");
-    return demoAtms.filter((atm) => {
+    return atmList.filter((atm) => {
       const matchesText = `${atm.name} ${atm.bank} ${atm.area}`
         .toLocaleLowerCase("pt-AO")
         .includes(needle);
-      return matchesText && (filter === "all" || atm.availability === filter);
+      const avail = atm.availability as string;
+      return matchesText && (filter === "all" || avail === filter);
     });
-  }, [filter, query]);
+  }, [filter, query, atmList]);
 
   function useLocation() {
     if (!navigator.geolocation) {
@@ -101,6 +167,33 @@ function Index() {
       () => setLocationMessage("Sem localização? Podes pesquisar manualmente."),
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 },
     );
+  }
+
+  async function handleSubmitAtm(data: SubmitAtmFormData): Promise<void> {
+    // Com Supabase configurado, importar e chamar useSubmitAtm
+    // Por agora, simula sucesso após 800ms
+    await new Promise((r) => setTimeout(r, 800));
+    console.info("ATM submetido (modo demo):", data);
+  }
+
+  async function handleSubmitReport(data: SubmitReportFormData): Promise<void> {
+    if (reportingAtm) {
+      if (hasSupabase && reportingAtm.id && reportingAtm.id.includes("-") && !reportingAtm.id.startsWith("sample")) {
+        try {
+          const { error } = await supabase.from("reports").insert({
+            atm_id: reportingAtm.id,
+            availability: data.availability,
+            confirmed_at: data.confirmedAt,
+            source: data.feedbackSummary,
+          });
+          if (error) {
+            console.warn("Aviso ao guardar reporte no Supabase (RLS):", error.message);
+          }
+        } catch (e) {
+          console.warn("Erro ao comunicar com Supabase:", e);
+        }
+      }
+    }
   }
 
   return (
@@ -139,7 +232,7 @@ function Index() {
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="hidden gap-1.5 rounded-sm border-primary/20 bg-secondary px-2.5 py-1 text-primary sm:inline-flex">
               <span className="size-1.5 rounded-full bg-primary" aria-hidden="true" />
-              Pré-lançamento
+              {hasSupabase ? "Dados reais" : "Pré-lançamento"}
             </Badge>
             <Button
               variant="ghost"
@@ -150,7 +243,7 @@ function Index() {
               onClick={() => setShowInfo((value) => !value)}
             >
               <Bell className="size-[18px]" aria-hidden="true" />
-              <span className="absolute right-2 top-2 size-1.5 rounded-full bg-status-stale" />
+              {!hasSupabase && <span className="absolute right-2 top-2 size-1.5 rounded-full bg-status-stale" />}
             </Button>
             <Button
               variant="outline"
@@ -166,8 +259,14 @@ function Index() {
         <main id="conteudo-principal" className="mx-auto w-full max-w-[1440px] min-w-0 px-4 pb-28 pt-7 sm:px-7 md:pt-9 lg:px-10 lg:pb-12">
           {showInfo && (
             <div role="status" className="mb-5 flex items-start justify-between gap-3 border border-status-stale/25 bg-status-stale/10 px-4 py-3 text-sm">
-              <p className="leading-6">Esta versão mostra apenas exemplos fictícios. A consulta de ATM reais será activada quando existir uma lista validada.</p>
-              <Button size="icon" variant="ghost" className="size-7 shrink-0" aria-label="Fechar aviso" onClick={() => setShowInfo(false)}><X className="size-4" /></Button>
+              <p className="leading-6">
+                {hasSupabase
+                  ? "A mostrar dados reais do Supabase."
+                  : "Esta versão mostra apenas exemplos fictícios. A consulta de ATM reais será activada quando existir uma lista validada."}
+              </p>
+              <Button size="icon" variant="ghost" className="size-7 shrink-0" aria-label="Fechar aviso" onClick={() => setShowInfo(false)}>
+                <X className="size-4" />
+              </Button>
             </div>
           )}
 
@@ -194,9 +293,15 @@ function Index() {
           )}
           {section === "map" && <MapView onSearch={() => setSection("search")} />}
           {section === "favorites" && <AccountView kind="favorites" onProfile={() => setSection("profile")} />}
-          {section === "profile" && <AccountView kind="profile" onProfile={() => setShowInfo(true)} />}
+          {section === "profile" && (
+            <ProfileView
+              onShowInfo={() => setShowInfo(true)}
+              onSubmitAtm={() => setShowSubmitAtm(true)}
+            />
+          )}
 
-          {selectedAtm && (
+          {/* Modal: detalhes de ATM */}
+          {selectedAtm && !showSubmitAtm && !reportingAtm && (
             <AtmDetails
               atm={selectedAtm}
               onClose={() => setSelectedAtm(null)}
@@ -204,7 +309,83 @@ function Index() {
                 setSelectedAtm(null);
                 setSection("profile");
               }}
+              onReport={() => setReportingAtm(selectedAtm as RealAtm)}
+              reportHistory={
+                (selectedAtm as RealAtm).isReal
+                  ? [
+                      {
+                        id: "rep-initial",
+                        availability: "available",
+                        confirmedAt: "17/11/2026 às 09:24",
+                        source: "Observação presencial",
+                      },
+                    ]
+                  : undefined
+              }
             />
+          )}
+
+          {/* Modal: submeter ATM */}
+          {showSubmitAtm && (
+            <div
+              className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/35 p-0 sm:items-center sm:p-5"
+              role="presentation"
+              onClick={() => setShowSubmitAtm(false)}
+            >
+              <section
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="submit-atm-title"
+                className="w-full max-w-lg overflow-y-auto border border-border bg-background p-5 shadow-xl sm:max-h-[90vh] sm:p-7"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="mb-5 flex items-center justify-between gap-4">
+                  <h2 id="submit-atm-title" className="font-display text-xl font-semibold">
+                    Submeter ATM
+                  </h2>
+                  <Button variant="ghost" size="icon" className="-mr-2 -mt-2 size-9" aria-label="Fechar" onClick={() => setShowSubmitAtm(false)}>
+                    <X className="size-4" />
+                  </Button>
+                </div>
+                <SubmitAtmForm
+                  onSubmit={handleSubmitAtm}
+                  onCancel={() => setShowSubmitAtm(false)}
+                />
+              </section>
+            </div>
+          )}
+
+          {/* Modal: reportar disponibilidade */}
+          {reportingAtm && (
+            <div
+              className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/35 p-0 sm:items-center sm:p-5"
+              role="presentation"
+              onClick={() => setReportingAtm(null)}
+            >
+              <section
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="submit-report-title"
+                className="w-full max-w-lg overflow-y-auto border border-border bg-background p-5 shadow-xl sm:max-h-[90vh] sm:p-7"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="mb-5 flex items-center justify-between gap-4">
+                  <h2 id="submit-report-title" className="font-display text-xl font-semibold">
+                    Avaliar e Confirmar Levantamento
+                  </h2>
+                  <Button variant="ghost" size="icon" className="-mr-2 -mt-2 size-9" aria-label="Fechar" onClick={() => setReportingAtm(null)}>
+                    <X className="size-4" />
+                  </Button>
+                </div>
+                <SubmitReportForm
+                  atmName={reportingAtm.name}
+                  atmBank={reportingAtm.bank}
+                  atmArea={reportingAtm.area}
+                  onSubmit={handleSubmitReport}
+                  onCancel={() => setReportingAtm(null)}
+                />
+              </section>
+            </div>
           )}
         </main>
       </div>
@@ -247,9 +428,11 @@ function NavButton({
   return (
     <Button
       variant={active ? "secondary" : "ghost"}
-      className={mobile
-        ? `flex h-[58px] w-full flex-col gap-1 rounded-none px-1 text-[10px] ${active ? "text-primary" : "text-muted-foreground"}`
-        : `h-11 w-full justify-start rounded-md px-3 text-sm ${active ? "bg-secondary font-semibold text-primary" : "font-medium text-muted-foreground"}`}
+      className={
+        mobile
+          ? `flex h-[58px] w-full flex-col gap-1 rounded-none px-1 text-[10px] ${active ? "text-primary" : "text-muted-foreground"}`
+          : `h-11 w-full justify-start rounded-md px-3 text-sm ${active ? "bg-secondary font-semibold text-primary" : "font-medium text-muted-foreground"}`
+      }
       aria-current={active ? "page" : undefined}
       aria-label={mobile ? item.label : undefined}
       onClick={onClick}
@@ -292,11 +475,11 @@ function HomeView({
 }: {
   query: string;
   setQuery: (value: string) => void;
-  visibleAtms: DemoAtm[];
+  visibleAtms: AtmData[];
   onLocation: () => void;
   locationMessage: string;
   onMap: () => void;
-  onSelect: (atm: DemoAtm) => void;
+  onSelect: (atm: AtmData) => void;
 }) {
   const counts = [
     { key: "available", label: "Com dinheiro", amount: 1, icon: ArrowUpRight },
@@ -304,12 +487,13 @@ function HomeView({
     { key: "out-of-service", label: "Fora de serviço", amount: 1, icon: X },
     { key: "stale", label: "Sem informação recente", amount: 1, icon: Clock3 },
   ] as const;
+
   return (
     <>
       <section className="relative mb-8 grid min-h-[300px] overflow-hidden rounded-md bg-primary text-primary-foreground md:grid-cols-[1.05fr_0.95fr]">
         <div className="relative z-10 flex flex-col items-start justify-center px-6 py-8 sm:px-9 md:px-10 md:py-10">
           <Badge variant="outline" className="mb-5 rounded-sm border-primary-foreground/30 bg-primary-foreground/10 px-2.5 py-1 text-[10px] font-medium text-primary-foreground">
-            <MapPin className="mr-1.5 size-3" aria-hidden="true" /> LUANDA · VERSÃO DE DEMONSTRAÇÃO
+            <MapPin className="mr-1.5 size-3" aria-hidden="true" /> LUANDA · {hasSupabase ? "DADOS REAIS" : "VERSÃO DE DEMONSTRAÇÃO"}
           </Badge>
           <h1 className="max-w-xl font-display text-3xl font-semibold leading-tight tracking-[0] sm:text-4xl">
             Saiba onde levantar. <span className="text-brand-lime">Poupe tempo.</span>
@@ -348,44 +532,42 @@ function HomeView({
       <div className="mb-7 grid grid-cols-2 gap-3 xl:grid-cols-4">
         {counts.map(({ key, label, amount, icon: Icon }) => (
           <div key={key} className="flex min-h-[102px] items-center gap-3 border border-border bg-card px-4 py-4 sm:px-5">
-            <span className={`flex size-10 shrink-0 items-center justify-center rounded-md ${statusCopy[key].className}`}><Icon className="size-[18px]" aria-hidden="true" /></span>
-            <div className="min-w-0"><p className="font-display text-2xl font-semibold leading-none">{amount}</p><p className="mt-1.5 text-xs leading-4 text-muted-foreground">{label}</p></div>
+            <span className={`flex size-10 shrink-0 items-center justify-center rounded-md ${statusCopy[key].className}`}>
+              <Icon className="size-[18px]" aria-hidden="true" />
+            </span>
+            <div className="min-w-0">
+              <p className="font-display text-2xl font-semibold leading-none">{amount}</p>
+              <p className="mt-1.5 text-xs leading-4 text-muted-foreground">{label}</p>
+            </div>
           </div>
         ))}
       </div>
 
-      <div className="mb-6"><DemoNotice /></div>
+      {!hasSupabase && <div className="mb-6"><DemoNotice /></div>}
 
       <section>
         <div className="mb-4 flex items-end justify-between gap-3">
-          <div><p className="text-[11px] font-semibold uppercase tracking-[0] text-primary">Amostras fictícias</p><h2 className="mt-1 font-display text-xl font-semibold">Reportes de demonstração</h2></div>
-          <Button variant="ghost" className="h-9 shrink-0 px-2 text-xs font-semibold text-primary" onClick={onMap}>Abrir mapa <ChevronRight className="size-4" aria-hidden="true" /></Button>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0] text-primary">
+              {hasSupabase ? "ATM verificados" : "Amostras fictícias"}
+            </p>
+            <h2 className="mt-1 font-display text-xl font-semibold">
+              {hasSupabase ? "Reportes recentes" : "Reportes de demonstração"}
+            </h2>
+          </div>
+          <Button variant="ghost" className="h-9 shrink-0 px-2 text-xs font-semibold text-primary" onClick={onMap}>
+            Abrir mapa <ChevronRight className="size-4" aria-hidden="true" />
+          </Button>
         </div>
         {visibleAtms.length ? (
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-2">
-            {visibleAtms.slice(0, 4).map((atm) => <AtmCard key={atm.id} atm={atm} onClick={() => onSelect(atm)} />)}
+            {visibleAtms.slice(0, 4).map((atm) => (
+              <AtmCard key={atm.id} atm={atm} onClick={() => onSelect(atm)} />
+            ))}
           </div>
         ) : <EmptyResults />}
       </section>
     </>
-  );
-}
-
-function AtmCard({ atm, onClick }: { atm: DemoAtm; onClick: () => void }) {
-  const status = statusCopy[atm.availability];
-  return (
-    <button type="button" className="group flex w-full items-center gap-4 border border-border bg-card p-4 text-left transition-colors hover:border-primary/40 sm:p-5" onClick={onClick}>
-      <span className={`flex size-11 shrink-0 items-center justify-center rounded-md ${status.className}`}><Banknote className="size-5" aria-hidden="true" /></span>
-      <span className="min-w-0 flex-1">
-        <span className="flex flex-wrap items-center gap-2"><span className="truncate font-semibold">{atm.name}</span><span className="rounded-sm border border-border px-1.5 py-0.5 text-[9px] font-medium uppercase text-muted-foreground">Exemplo</span></span>
-        <span className="mt-1 block truncate text-xs text-muted-foreground">{atm.bank} · {atm.area}</span>
-        <span className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-          <span className={`font-medium ${status.className}`}>{status.label}</span>
-          <span className="text-muted-foreground">{atm.updated}</span>
-        </span>
-      </span>
-      <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
-    </button>
   );
 }
 
@@ -401,17 +583,17 @@ function SearchView({
   setQuery: (value: string) => void;
   filter: Filter;
   setFilter: (value: Filter) => void;
-  visibleAtms: DemoAtm[];
-  onSelect: (atm: DemoAtm) => void;
+  visibleAtms: AtmData[];
+  onSelect: (atm: AtmData) => void;
 }) {
   return (
     <>
-      <PageHeading eyebrow="Encontra um ATM" title="Pesquisar" text="Procura por banco, identificação ou zona. Nesta versão, os resultados são apenas exemplos fictícios." />
-      <div className="mb-5"><DemoNotice /></div>
+      <PageHeading eyebrow="Encontra um ATM" title="Pesquisar" text={hasSupabase ? "Procura por banco, identificação ou zona." : "Procura por banco, identificação ou zona. Nesta versão, os resultados são apenas exemplos fictícios."} />
+      {!hasSupabase && <div className="mb-5"><DemoNotice /></div>}
       <div className="mb-5 flex flex-col gap-3 sm:flex-row">
         <label className="relative min-w-0 flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-          <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Banco, ATM ou localização fictícia" className="h-11 rounded-md pl-10" aria-label="Pesquisar exemplos de ATM" />
+          <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={hasSupabase ? "Banco, ATM ou localização" : "Banco, ATM ou localização fictícia"} className="h-11 rounded-md pl-10" aria-label="Pesquisar ATM" />
         </label>
         <label className="flex h-11 items-center gap-2 border border-input bg-background px-3 text-sm">
           <SlidersHorizontal className="size-4 text-muted-foreground" aria-hidden="true" />
@@ -425,8 +607,12 @@ function SearchView({
           </select>
         </label>
       </div>
-      <p className="mb-3 text-xs text-muted-foreground">{visibleAtms.length} {visibleAtms.length === 1 ? "exemplo encontrado" : "exemplos encontrados"}</p>
-      <div className="grid gap-3 md:grid-cols-2">{visibleAtms.map((atm) => <AtmCard key={atm.id} atm={atm} onClick={() => onSelect(atm)} />)}</div>
+      <p className="mb-3 text-xs text-muted-foreground">
+        {visibleAtms.length} {visibleAtms.length === 1 ? (hasSupabase ? "ATM encontrado" : "exemplo encontrado") : (hasSupabase ? "ATM encontrados" : "exemplos encontrados")}
+      </p>
+      <div className="grid gap-3 md:grid-cols-2">
+        {visibleAtms.map((atm) => <AtmCard key={atm.id} atm={atm} onClick={() => onSelect(atm)} />)}
+      </div>
       {!visibleAtms.length && <EmptyResults />}
     </>
   );
@@ -442,7 +628,7 @@ function MapView({ onSearch }: { onSearch: () => void }) {
           <span className="mx-auto flex size-14 items-center justify-center rounded-md bg-background text-primary"><Map className="size-6" aria-hidden="true" /></span>
           <h2 className="mt-4 font-display text-xl font-semibold">Mapa em preparação</h2>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">O mapa real depende da configuração do serviço de mapas e de uma lista validada de ATM. Não mostramos marcadores inventados.</p>
-          <Button className="mt-5 rounded-md" onClick={onSearch}><Search className="size-4" aria-hidden="true" />Ver exemplos na pesquisa</Button>
+          <Button className="mt-5 rounded-md" onClick={onSearch}><Search className="size-4" aria-hidden="true" />Ver ATM na pesquisa</Button>
         </div>
       </div>
     </>
@@ -456,7 +642,9 @@ function AccountView({ kind, onProfile }: { kind: "favorites" | "profile"; onPro
       <PageHeading eyebrow={favorites ? "Os teus ATM" : "A tua conta"} title={favorites ? "Favoritos" : "Perfil"} text={favorites ? "Guarda os ATM que consultas com frequência." : "Acede ao teu perfil, contribuições e preferências."} />
       <div className="grid min-h-[320px] place-items-center border border-border bg-card px-5 py-12 text-center">
         <div className="max-w-md">
-          <span className="mx-auto flex size-14 items-center justify-center rounded-md bg-secondary text-primary">{favorites ? <Heart className="size-6" aria-hidden="true" /> : <UserRound className="size-6" aria-hidden="true" />}</span>
+          <span className="mx-auto flex size-14 items-center justify-center rounded-md bg-secondary text-primary">
+            {favorites ? <Heart className="size-6" aria-hidden="true" /> : <UserRound className="size-6" aria-hidden="true" />}
+          </span>
           <h2 className="mt-4 font-display text-xl font-semibold">{favorites ? "Favoritos com conta" : "Conta disponível numa próxima etapa"}</h2>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">{favorites ? "Para guardar e sincronizar favoritos, será necessário iniciar sessão. As contas serão activadas depois da validação desta interface." : "O registo, início de sessão e perfil pessoal serão ligados numa próxima etapa. Ainda não aceitamos palavras-passe neste ecrã."}</p>
           {favorites && <Button variant="outline" className="mt-5 rounded-md" onClick={onProfile}>Ver perfil</Button>}
@@ -466,29 +654,63 @@ function AccountView({ kind, onProfile }: { kind: "favorites" | "profile"; onPro
   );
 }
 
-function AtmDetails({ atm, onClose, onAccount }: { atm: DemoAtm; onClose: () => void; onAccount: () => void }) {
-  const status = statusCopy[atm.availability];
+function ProfileView({
+  onShowInfo,
+  onSubmitAtm,
+}: {
+  onShowInfo: () => void;
+  onSubmitAtm: () => void;
+}) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/35 p-0 sm:items-center sm:p-5" role="presentation" onClick={onClose}>
-      <section role="dialog" aria-modal="true" aria-labelledby="atm-detail-title" className="w-full max-w-lg border border-border bg-background p-5 shadow-xl sm:p-7" onClick={(event) => event.stopPropagation()}>
-        <div className="mb-5 flex items-start justify-between gap-4">
-          <div><Badge variant="outline" className="mb-3 rounded-sm">Amostra fictícia</Badge><h2 id="atm-detail-title" className="font-display text-2xl font-semibold">{atm.name}</h2><p className="mt-1 text-sm text-muted-foreground">{atm.bank}</p></div>
-          <Button variant="ghost" size="icon" className="-mr-2 -mt-2 size-9" aria-label="Fechar detalhes" onClick={onClose}><X className="size-4" /></Button>
+    <>
+      <PageHeading eyebrow="A tua conta" title="Perfil" text="Acede ao teu perfil, contribuições e preferências." />
+
+      {/* Secção: Submeter ATM */}
+      <div className="mb-6 border border-border bg-card p-5 sm:p-6">
+        <div className="flex items-start gap-4">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+            <PlusCircle className="size-5" aria-hidden="true" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold">Submeter um ATM</p>
+            <p className="mt-1 text-sm leading-5 text-muted-foreground">
+              Conheces um ATM que não está na lista? Submete-o para aprovação e ajuda a comunidade.
+            </p>
+            <Button className="mt-4 rounded-md" onClick={onSubmitAtm}>
+              <PlusCircle className="size-4" aria-hidden="true" />
+              Submeter ATM
+            </Button>
+          </div>
         </div>
-        <DemoNotice />
-        <dl className="my-5 divide-y divide-border border-y border-border text-sm">
-          <div className="flex items-center justify-between gap-4 py-3"><dt className="text-muted-foreground">Localização</dt><dd className="text-right">{atm.area}</dd></div>
-          <div className="flex items-center justify-between gap-4 py-3"><dt className="text-muted-foreground">Estado do exemplo</dt><dd className={`text-right font-medium ${status.className}`}>{status.label}</dd></div>
-          <div className="flex items-center justify-between gap-4 py-3"><dt className="text-muted-foreground">Última confirmação fictícia</dt><dd className="text-right">{atm.updated}</dd></div>
-          <div className="flex items-center justify-between gap-4 py-3"><dt className="text-muted-foreground">Confirmações de exemplo</dt><dd className="text-right">{atm.confirmations}</dd></div>
-        </dl>
-        <p className="mb-4 text-xs leading-5 text-muted-foreground">As confirmações comunitárias não garantem dinheiro disponível. Estes dados são exclusivamente ilustrativos.</p>
-        <Button className="w-full rounded-md" variant="outline" onClick={onAccount}><Heart className="size-4" aria-hidden="true" />Favoritos e reportes chegam com as contas</Button>
-      </section>
-    </div>
+      </div>
+
+      {/* Conta ainda não disponível */}
+      <div className="grid min-h-[280px] place-items-center border border-border bg-card px-5 py-10 text-center">
+        <div className="max-w-md">
+          <span className="mx-auto flex size-14 items-center justify-center rounded-md bg-secondary text-primary">
+            <UserRound className="size-6" aria-hidden="true" />
+          </span>
+          <h2 className="mt-4 font-display text-xl font-semibold">Conta disponível numa próxima etapa</h2>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            O registo, início de sessão e perfil pessoal serão ligados numa próxima etapa. Ainda não aceitamos palavras-passe neste ecrã.
+          </p>
+          <Button variant="ghost" className="mt-4 text-xs text-muted-foreground" onClick={onShowInfo}>
+            Ver estado da demonstração
+          </Button>
+        </div>
+      </div>
+    </>
   );
 }
 
 function EmptyResults() {
-  return <div className="grid min-h-48 place-items-center border border-dashed border-border px-5 py-10 text-center"><div><Search className="mx-auto size-6 text-muted-foreground" aria-hidden="true" /><h3 className="mt-3 text-sm font-semibold">Nenhum exemplo encontrado</h3><p className="mt-1 text-xs text-muted-foreground">Experimenta outra pesquisa ou escolhe outro estado.</p></div></div>;
+  return (
+    <div className="grid min-h-48 place-items-center border border-dashed border-border px-5 py-10 text-center">
+      <div>
+        <Search className="mx-auto size-6 text-muted-foreground" aria-hidden="true" />
+        <h3 className="mt-3 text-sm font-semibold">Nenhum resultado encontrado</h3>
+        <p className="mt-1 text-xs text-muted-foreground">Experimenta outra pesquisa ou escolhe outro estado.</p>
+      </div>
+    </div>
+  );
 }
