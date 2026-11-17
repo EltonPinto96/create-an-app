@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-11-17T08:25:14.874Z",
+  "updated_at": "2026-11-17T08:26:15.814Z",
   "messages": [
     {
       "role": "user",
@@ -80,6 +80,15 @@
     {
       "role": "assistant",
       "text": "Anotado como o primeiro registo real informado por si:\n\n- **Banco:** Banco Atlântico\n- **ATM:** ATM Center MDC\n- **Localização:** MDC Shopping Via Express, Avenida Fidel de Castro Ruz, bairro Kicuxi\n- **Coordenadas:** referência do Google Maps enviada\n- **Disponibilidade:** tem dinheiro\n- **Confirmado em:** 17/11/2026 às 09:24\n- **Origem:** observação presencial\n\nComo definiu, o registo deve ficar visível após aprovação de um administrador e a disponibilidade expira duas horas depois da confirmação. Não consigo cadastrar ou aprovar o ATM na plataforma nesta conversa."
+    },
+    {
+      "role": "user",
+      "text": "qual é o proximo pasos?",
+      "attachments": []
+    },
+    {
+      "role": "assistant",
+      "text": "O próximo passo é cadastrar o ATM e a disponibilidade no Supabase, deixando o registo **pendente de aprovação**. Depois, um administrador aprova ou rejeita; se aprovar, a disponibilidade fica visível por duas horas a partir da confirmação, às 09:24.\n\nPara isso, o ATM KOTA ainda precisa destas partes:\n\n1. Tabelas para ATM, reportes de disponibilidade e aprovação administrativa.\n2. Regras de acesso para permitir que utilizadores enviem reportes e só administradores os aprovem.\n3. Uma tela administrativa para rever os pedidos pendentes.\n4. Um formulário para adicionar ATM e informar a disponibilidade, com data e hora.\n\nO registo que enviou pode servir como primeiro dado de demonstração. A localização está indicada pelo link do Google Maps; para guardar latitude e longitude na base, será preciso obter as coordenadas desse ponto.\n\nPosso ajudar a definir o esquema e os passos de configuração do Supabase, ou a implementar essas partes no projecto se me pedir uma alteração."
     }
   ]
 }
