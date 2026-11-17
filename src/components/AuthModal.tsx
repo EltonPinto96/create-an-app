@@ -10,6 +10,7 @@ import {
   X,
   ArrowLeft,
   Sparkles,
+  ShieldAlert,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,14 +23,16 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   defaultMode?: "login" | "register" | "recovery";
+  requiredReason?: string | null;
 }
 
 export function AuthModal({
   isOpen,
   onClose,
   defaultMode = "login",
+  requiredReason,
 }: AuthModalProps) {
-  const { signIn, signUp } = useAuth();
+  const { signIn, signInWithGoogle, signUp } = useAuth();
   const [mode, setMode] = useState<"login" | "register" | "recovery">(defaultMode);
 
   // Campos do formulário
@@ -57,6 +60,21 @@ export function AuthModal({
     setMode(newMode);
     setErrorMessage(null);
     setSuccessMessage(null);
+  }
+
+  async function handleGoogleSignIn() {
+    setErrorMessage(null);
+    setLoading(true);
+    try {
+      const { error } = await signInWithGoogle();
+      if (error) {
+        setErrorMessage(error.message);
+        setLoading(false);
+      }
+    } catch (err: any) {
+      setErrorMessage(err?.message || "Erro ao conectar com o Google.");
+      setLoading(false);
+    }
   }
 
   async function handlePasswordRecovery(e: React.FormEvent) {
@@ -101,29 +119,27 @@ export function AuthModal({
     setErrorMessage(null);
     setSuccessMessage(null);
 
+    // Validações básicas
     if (!email.trim() || !email.includes("@")) {
-      setErrorMessage("Por favor, introduz um endereço de email válido.");
+      setErrorMessage("Por favor introduz um email válido.");
       return;
     }
-
     if (password.length < 6) {
-      setErrorMessage("A palavra-passe deve ter pelo menos 6 caracteres.");
+      setErrorMessage("A palavra-passe deve conter pelo menos 6 caracteres.");
       return;
     }
-
     if (mode === "register" && password !== confirmPassword) {
       setErrorMessage("As palavras-passe não coincidem.");
       return;
     }
 
     setLoading(true);
-
     try {
       if (mode === "login") {
         const { error } = await signIn(email.trim(), password);
         if (error) {
           if (error.message.includes("Invalid login credentials")) {
-            setErrorMessage("Credenciais inválidas. Verifica o email e a palavra-passe.");
+            setErrorMessage("Email ou palavra-passe incorretos. Verifica os teus dados.");
           } else {
             setErrorMessage(error.message);
           }
@@ -134,16 +150,16 @@ export function AuthModal({
             onClose();
           }, 600);
         }
-      } else {
+      } else if (mode === "register") {
         const { error, requiresEmailConfirmation } = await signUp(
           email.trim(),
           password,
-          displayName.trim() || undefined
+          displayName.trim()
         );
 
         if (error) {
           if (error.message.includes("User already registered")) {
-            setErrorMessage("Já existe uma conta com este email. Experimenta iniciar sessão.");
+            setErrorMessage("Este email já se encontra registado. Experimenta iniciar sessão.");
           } else {
             setErrorMessage(error.message);
           }
@@ -181,7 +197,7 @@ export function AuthModal({
         </button>
 
         {/* Cabeçalho com Símbolo Oficial Kusanga Kitadi */}
-        <div className="mb-6 text-center">
+        <div className="mb-5 text-center">
           <div className="mx-auto mb-3 flex size-14 items-center justify-center">
             <KusangaSymbol size={48} />
           </div>
@@ -194,20 +210,75 @@ export function AuthModal({
           </h2>
           <p className="mt-1 text-xs text-muted-foreground">
             {mode === "login"
-              ? "Inicia sessão para guardar favoritos e avaliar caixas."
+              ? "Inicia sessão para reportar disponibilidade e aceder a todos os recursos."
               : mode === "register"
-              ? "A força está na ligação. Junta-te à comunidade de Luanda."
+              ? "A força está na ligação. Junta-te à comunidade em Luanda."
               : "Introduz o teu email para redefinir o acesso à tua conta."}
           </p>
         </div>
 
+        {/* Aviso de Autenticação Obrigatória para Contribuição Comunitária */}
+        {requiredReason && (
+          <div className="mb-4 rounded-2xl border border-[#C09A5B]/40 bg-[#C09A5B]/10 p-3.5 text-xs text-foreground flex items-start gap-2.5">
+            <ShieldAlert className="size-4 text-[#C09A5B] shrink-0 mt-0.5" />
+            <div>
+              <span className="font-bold text-[#C09A5B] block">Identificação Necessária</span>
+              <span className="text-muted-foreground text-[11px] leading-relaxed">
+                {requiredReason}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Botão de Login com o Google (Destaque Principal) */}
+        {mode !== "recovery" && (
+          <div className="mb-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleGoogleSignIn}
+              disabled={loading}
+              className="w-full h-12 rounded-2xl border-border/80 bg-background hover:bg-muted font-bold text-xs gap-3 shadow-xs transition-all hover:border-[#C09A5B]/70"
+            >
+              <svg className="size-5 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  fill="#4285F4"
+                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                />
+                <path
+                  fill="#EA4335"
+                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                />
+              </svg>
+              <span>Continuar com o Google</span>
+            </Button>
+
+            {/* Separador */}
+            <div className="relative my-4 flex items-center justify-center text-[10px] uppercase">
+              <div className="h-px w-full bg-border/70" />
+              <span className="bg-card px-2.5 font-semibold text-muted-foreground whitespace-nowrap">
+                ou com email e palavra-passe
+              </span>
+              <div className="h-px w-full bg-border/70" />
+            </div>
+          </div>
+        )}
+
         {/* Abas Alternadoras (Apenas Login / Registo) */}
         {mode !== "recovery" && (
-          <div className="mb-5 flex rounded-xl bg-secondary/70 p-1 text-xs font-bold">
+          <div className="mb-4 flex rounded-xl bg-secondary/70 p-1 text-xs font-bold">
             <button
               type="button"
               onClick={() => handleSwitchMode("login")}
-              className={`flex-1 rounded-lg py-2 transition-all ${
+              className={`flex-1 rounded-lg py-1.5 transition-all ${
                 mode === "login"
                   ? "bg-card text-foreground shadow-xs font-bold"
                   : "text-muted-foreground hover:text-foreground"
@@ -218,7 +289,7 @@ export function AuthModal({
             <button
               type="button"
               onClick={() => handleSwitchMode("register")}
-              className={`flex-1 rounded-lg py-2 transition-all ${
+              className={`flex-1 rounded-lg py-1.5 transition-all ${
                 mode === "register"
                   ? "bg-card text-foreground shadow-xs font-bold"
                   : "text-muted-foreground hover:text-foreground"
@@ -256,10 +327,10 @@ export function AuthModal({
           </div>
         )}
 
-        {/* Formulário */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Formulário com Email e Password */}
+        <form onSubmit={handleSubmit} className="space-y-3.5">
           {mode === "register" && (
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <Label htmlFor="displayName" className="text-xs font-semibold text-foreground">
                 Nome de Apresentação
               </Label>
@@ -277,7 +348,7 @@ export function AuthModal({
             </div>
           )}
 
-          <div className="space-y-1.5">
+          <div className="space-y-1">
             <Label htmlFor="authEmail" className="text-xs font-semibold text-foreground">
               Endereço de Email
             </Label>
@@ -296,7 +367,7 @@ export function AuthModal({
           </div>
 
           {mode !== "recovery" && (
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <div className="flex items-center justify-between">
                 <Label htmlFor="authPassword" className="text-xs font-semibold text-foreground">
                   Palavra-passe
@@ -327,7 +398,7 @@ export function AuthModal({
           )}
 
           {mode === "register" && (
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <Label htmlFor="confirmPassword" className="text-xs font-semibold text-foreground">
                 Confirmar Palavra-passe
               </Label>
@@ -349,7 +420,7 @@ export function AuthModal({
           <Button
             type="submit"
             disabled={loading}
-            className="w-full h-11 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 font-bold text-xs shadow-sm mt-2"
+            className="w-full h-10 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 font-bold text-xs shadow-sm mt-1"
           >
             {loading ? (
               <>
@@ -357,9 +428,9 @@ export function AuthModal({
                 A processar...
               </>
             ) : mode === "login" ? (
-              "Iniciar Sessão"
+              "Iniciar Sessão com Email"
             ) : mode === "register" ? (
-              "Criar Conta"
+              "Criar Conta com Email"
             ) : (
               "Enviar Link de Recuperação"
             )}
@@ -367,7 +438,7 @@ export function AuthModal({
         </form>
 
         {/* Rodapé institucional */}
-        <div className="mt-5 text-center text-[10px] text-muted-foreground border-t border-border/60 pt-3">
+        <div className="mt-4 text-center text-[10px] text-muted-foreground border-t border-border/60 pt-2.5">
           <p className="font-semibold text-[#C09A5B]">KUSANGA KITADI</p>
           <p className="italic">A força está na ligação. Saiba onde levantar.</p>
         </div>

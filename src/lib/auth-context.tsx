@@ -17,6 +17,7 @@ interface AuthContextType {
   canModerate: boolean;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signInWithGoogle: () => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, displayName?: string) => Promise<{ error: Error | null; requiresEmailConfirmation?: boolean }>;
   signOut: () => Promise<{ error: Error | null }>;
 }
@@ -54,10 +55,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setProfile({
           id: currentUser.id,
           display_name:
+            currentUser.user_metadata?.full_name ||
+            currentUser.user_metadata?.name ||
             currentUser.user_metadata?.display_name ||
             currentUser.email?.split("@")[0] ||
             "Utilizador",
-          avatar_url: null,
+          avatar_url:
+            currentUser.user_metadata?.avatar_url ||
+            currentUser.user_metadata?.picture ||
+            null,
         });
       }
 
@@ -165,6 +171,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  async function signInWithGoogle() {
+    if (!hasSupabase) return { error: new Error("Backend não configurado. Contacta o administrador.") };
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: typeof window !== "undefined" ? window.location.origin : undefined,
+        },
+      });
+      return { error: error ? new Error(error.message) : null };
+    } catch (err: any) {
+      return { error: err };
+    }
+  }
+
   async function signOut() {
     if (!hasSupabase) {
       setProfile(null);
@@ -194,6 +215,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         canModerate: isAdmin || isModerator,
         loading,
         signIn,
+        signInWithGoogle,
         signUp,
         signOut,
       }}
