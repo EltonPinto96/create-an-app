@@ -3,8 +3,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import {
   ArrowDownRight,
   ArrowUpRight,
+  Award,
   Banknote,
   Bell,
+  CheckCircle2,
   ChevronRight,
   CircleHelp,
   Clock3,
@@ -20,11 +22,14 @@ import {
   Search,
   ShieldCheck,
   SlidersHorizontal,
+  Sparkles,
   UserRound,
   LogIn,
   LogOut,
   X,
+  Zap,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import atmPhoto from "@/assets/atm-kota-demo.jpg";
 import { Badge } from "@/components/ui/badge";
@@ -112,6 +117,7 @@ function Index() {
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [locationLabel, setLocationLabel] = useState<string>("Localização GPS");
+  const [customOverrides, setCustomOverrides] = useState<Record<string, Partial<RealAtm>>>({});
 
   function openAuth(mode: "login" | "register" = "login", reason?: string | null) {
     setAuthModalMode(mode);
@@ -172,14 +178,19 @@ function Index() {
       };
     });
 
-    // Combinar com os 20 ATMs reais de Luanda (evita duplicados pelo nome)
+    // Combinar com os 22 ATMs reais de Luanda (evita duplicados pelo nome)
     const dbNames = new Set(dbMapped.map((a) => a.name.toLowerCase()));
     const remainingReal = REAL_ATMS_LUANDA.filter(
       (real) => !dbNames.has(real.name.toLowerCase())
     );
 
-    return [...dbMapped, ...remainingReal];
-  }, [dbAtms]);
+    const merged = [...dbMapped, ...remainingReal];
+    return merged.map((atm) => {
+      const override = customOverrides[atm.id];
+      if (!override) return atm;
+      return { ...atm, ...override } as AtmData;
+    });
+  }, [dbAtms, customOverrides]);
 
   const {
     notifications,
@@ -311,6 +322,21 @@ function Index() {
 
   async function handleSubmitReport(data: SubmitReportFormData): Promise<void> {
     if (reportingAtm) {
+      setCustomOverrides((prev) => ({
+        ...prev,
+        [reportingAtm.id]: {
+          availability: data.availability,
+          queueTime: data.queueTime,
+          notesAvailable: data.notesAvailable,
+          updated: "Atualizado há instantes",
+        },
+      }));
+
+      toast.success("✅ Reporte registado na comunidade!", {
+        description: `Informação atualizada para "${reportingAtm.name}". +15 Pontos de Karma atribuídos!`,
+        duration: 5000,
+      });
+
       if (favoriteIds.includes(reportingAtm.id)) {
         simulateStatusChange(reportingAtm.id, data.availability);
       }
@@ -330,7 +356,56 @@ function Index() {
           console.warn("Erro ao comunicar com Supabase:", e);
         }
       }
+
+      setReportingAtm(null);
     }
+  }
+
+  async function handleQuickNoCash(atm: RealAtm) {
+    if (!user) {
+      openAuth(
+        "login",
+        "Inicia sessão com a tua conta Google para reportar que o dinheiro acabou neste caixa."
+      );
+      return;
+    }
+
+    setCustomOverrides((prev) => ({
+      ...prev,
+      [atm.id]: {
+        availability: "no-cash",
+        updated: "Reportado sem notas há instantes",
+      },
+    }));
+
+    toast.warning("⚠️ Marcado como sem notas!", {
+      description: `Obrigado! Avisaste a comunidade sobre o ${atm.name}. +10 Pontos de Karma atribuídos!`,
+      duration: 5000,
+    });
+
+    if (favoriteIds.includes(atm.id)) {
+      simulateStatusChange(atm.id, "no-cash");
+    }
+
+    if (hasSupabase && atm.id && atm.id.includes("-") && !atm.id.startsWith("sample")) {
+      try {
+        await supabase.from("reports").insert({
+          atm_id: atm.id,
+          availability: "no-cash",
+          confirmed_at: new Date().toISOString(),
+          source: "Reporte rápido: dinheiro esgotado",
+          reported_by: user.id,
+        });
+      } catch (err) {
+        console.warn("Aviso ao registar reporte rápido no Supabase:", err);
+      }
+    }
+
+    setSelectedAtm((curr) =>
+      curr && curr.id === atm.id
+        ? { ...curr, availability: "no-cash", updated: "Reportado sem notas há instantes" }
+        : curr
+    );
   }
 
   return (
@@ -519,6 +594,7 @@ function Index() {
                 setSection("profile");
               }}
               onReport={() => handleInitiateReport(selectedAtm as RealAtm)}
+              onQuickNoCash={handleQuickNoCash}
               isFavorite={selectedAtm ? isFavorite(selectedAtm.id) : false}
               onToggleFavorite={() => selectedAtm && toggleFavorite(selectedAtm.id)}
               reportHistory={
@@ -1352,6 +1428,114 @@ function ProfileView({
           </div>
         </div>
       )}
+
+      {/* Gamificação & Reputação Comunitária (Efeito Waze) */}
+      <div className="mb-6 rounded-2xl border border-[#C09A5B]/30 bg-card p-5 sm:p-6 shadow-sm relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-[#C09A5B]/10 to-transparent rounded-full blur-2xl pointer-events-none" />
+
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-border">
+          <div className="flex items-center gap-3">
+            <span className="flex size-11 items-center justify-center rounded-2xl bg-[#C09A5B]/15 text-[#C09A5B]">
+              <Award className="size-6 text-[#C09A5B]" />
+            </span>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-display text-base font-bold text-foreground">
+                  Reputação Comunitária
+                </h3>
+                <Badge className="bg-[#C09A5B] text-[#26362F] font-bold text-[10px] hover:bg-[#C09A5B]/90 border-none">
+                  Efeito Waze
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Nível 2 · Sentinela de Luanda
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary/10 border border-primary/20 text-xs font-bold text-primary">
+              <Zap className="size-3.5 text-[#C09A5B]" />
+              240 Pontos de Karma
+            </span>
+          </div>
+        </div>
+
+        {/* Barra de Progresso do Nível */}
+        <div className="mt-4">
+          <div className="flex items-center justify-between text-xs mb-1.5">
+            <span className="font-semibold text-foreground">Progresso para Nível 3 (Guardião do Kwanza)</span>
+            <span className="font-bold text-[#C09A5B]">240 / 300 pts (80%)</span>
+          </div>
+          <div className="w-full h-2.5 rounded-full bg-secondary overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-[#26362F] via-[#C09A5B] to-[#C09A5B] rounded-full transition-all duration-500"
+              style={{ width: "80%" }}
+            />
+          </div>
+        </div>
+
+        {/* Métricas de Impacto Comunitário */}
+        <div className="grid grid-cols-3 gap-2.5 sm:gap-4 mt-5">
+          <div className="rounded-xl border border-border bg-secondary/50 p-3 text-center">
+            <p className="font-display text-lg sm:text-xl font-bold text-foreground">14</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground font-medium mt-0.5">Reportes Enviados</p>
+          </div>
+          <div className="rounded-xl border border-border bg-secondary/50 p-3 text-center">
+            <p className="font-display text-lg sm:text-xl font-bold text-status-available">230+</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground font-medium mt-0.5">Cidadãos Ajudados</p>
+          </div>
+          <div className="rounded-xl border border-border bg-secondary/50 p-3 text-center">
+            <p className="font-display text-lg sm:text-xl font-bold text-[#C09A5B]">98%</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground font-medium mt-0.5">Precisão Comunitária</p>
+          </div>
+        </div>
+
+        {/* Conquistas e Medalhas */}
+        <div className="mt-5 pt-4 border-t border-border">
+          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
+            Medalhas & Distintivos de Cidadão
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div className="flex items-center gap-3 p-2.5 rounded-xl border border-border bg-background">
+              <span className="text-xl">⚡</span>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-foreground">Reporte Relâmpago</p>
+                <p className="text-[11px] text-muted-foreground truncate">Primeiro a avisar sobre notas disponíveis</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-2.5 rounded-xl border border-border bg-background">
+              <span className="text-xl">🛡️</span>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-foreground">Verificador Confiável</p>
+                <p className="text-[11px] text-muted-foreground truncate">5+ reportes confirmados por outros utentes</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-2.5 rounded-xl border border-border bg-background">
+              <span className="text-xl">📍</span>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-foreground">Sentinela de Luanda</p>
+                <p className="text-[11px] text-muted-foreground truncate">Mapeou caixas em 3 municípios diferentes</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-2.5 rounded-xl border border-border bg-background">
+              <span className="text-xl">🤝</span>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-foreground">Kamba Solidário</p>
+                <p className="text-[11px] text-muted-foreground truncate">Partilhou ATM disponível via WhatsApp</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Dica Comunitária */}
+        <div className="mt-4 rounded-xl bg-[#C09A5B]/10 border border-[#C09A5B]/20 p-3 text-xs text-foreground/90 flex items-start gap-2.5">
+          <Sparkles className="size-4 text-[#C09A5B] shrink-0 mt-0.5" />
+          <p className="leading-relaxed">
+            <strong className="font-semibold text-foreground">Como subir de nível:</strong> Ao passar por qualquer caixa, relata a disponibilidade, tamanho da fila ou se o dinheiro esgotou. Cada informação poupa tempo e combustível a milhares de angolanos!
+          </p>
+        </div>
+      </div>
 
       {/* Secção: Painel de Moderação (Admin ou Moderador) */}
       <div className="mb-6 rounded-2xl border border-[#C09A5B]/30 bg-gradient-to-r from-[#26362F]/5 via-background to-[#C09A5B]/5 p-5 sm:p-6 shadow-sm">

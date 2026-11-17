@@ -14,12 +14,14 @@ import {
   ChevronRight,
   ShieldCheck,
   RotateCw,
+  Users,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { AtmData } from "@/routes/index";
 import { KusangaSymbol, KusangaSloganPill } from "@/components/KusangaLogo";
 import { openDirections } from "@/lib/google-maps";
+import { openWhatsAppShare } from "@/lib/whatsapp-share";
 
 export interface NearbyAtmsModalProps {
   isOpen: boolean;
@@ -367,7 +369,31 @@ export function NearbyAtmsModal({
                   </div>
 
                   {/* Ações Rápidas */}
-                  <div className="mt-3 flex items-center justify-end gap-2">
+                  <div className="mt-3 flex items-center justify-end gap-1.5 sm:gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 px-2.5 text-xs gap-1 border-emerald-600/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+                      title="Partilhar no WhatsApp"
+                      onClick={() =>
+                        openWhatsAppShare({
+                          bank: atm.bank,
+                          name: atm.name,
+                          area: atm.area,
+                          availability: atm.availability,
+                          updated: atm.updated,
+                          queueTime: (atm as any).queueTime,
+                          notesAvailable: (atm as any).notesAvailable,
+                          lat,
+                          lng,
+                        })
+                      }
+                    >
+                      <svg className="size-3.5 fill-emerald-600 shrink-0" viewBox="0 0 24 24">
+                        <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.664-.698c.969.587 1.961.916 2.8.916 3.182 0 5.768-2.587 5.769-5.766.001-3.182-2.584-5.769-5.773-5.769zm10.222 5.766c-.002 5.61-4.568 10.174-10.179 10.174-1.745 0-3.454-.45-4.966-1.305l-5.553 1.456 1.481-5.412c-.938-1.576-1.433-3.39-1.434-5.234.002-5.61 4.568-10.174 10.18-10.174 5.61 0 10.174 4.563 10.176 10.174z" />
+                      </svg>
+                    </Button>
+
                     {typeof lat === "number" && typeof lng === "number" && (
                       <Button
                         size="sm"

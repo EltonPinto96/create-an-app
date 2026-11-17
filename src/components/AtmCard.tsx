@@ -10,11 +10,14 @@ import {
   HelpCircle,
   ShieldCheck,
   Check,
+  Users,
+  Share2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { type DemoAtm, type DemoAvailability } from "@/lib/atm-demo-data";
 import { openInGoogleMaps, buildMapsUrl } from "@/lib/google-maps";
+import { openWhatsAppShare } from "@/lib/whatsapp-share";
 
 export type AtmAvailability = DemoAvailability | "pending";
 
@@ -32,6 +35,8 @@ export interface RealAtm {
   maps_url?: string;
   expiresIn?: string;
   operationalStatus?: "operational" | "out-of-service";
+  queueTime?: "none" | "short" | "medium" | "long";
+  notesAvailable?: string;
 }
 
 type AtmCardData = DemoAtm | RealAtm;
@@ -155,22 +160,51 @@ export function AtmCard({
             )}
           </div>
 
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="size-8 rounded-full text-muted-foreground hover:text-[#C09A5B] hover:bg-secondary/70 -mr-1 -mt-1"
-            aria-label={isFavorite ? "Remover dos favoritos" : "Guardar nos favoritos"}
-            onClick={handleFavClick}
-          >
-            <Heart
-              className={`size-4 transition-transform duration-200 active:scale-125 ${
-                isFavorite
-                  ? "fill-[#C09A5B] text-[#C09A5B]"
-                  : "text-muted-foreground hover:text-[#C09A5B]"
-              }`}
-            />
-          </Button>
+          <div className="flex items-center gap-1 -mr-1 -mt-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="size-8 rounded-full text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+              aria-label="Partilhar no WhatsApp"
+              title="Partilhar no WhatsApp"
+              onClick={(e) => {
+                e.stopPropagation();
+                openWhatsAppShare({
+                  bank: atm.bank,
+                  name: atm.name,
+                  area: atm.area,
+                  availability: atm.availability,
+                  updated: atm.updated,
+                  queueTime: real.queueTime,
+                  notesAvailable: real.notesAvailable,
+                  lat: real.lat,
+                  lng: real.lng,
+                });
+              }}
+            >
+              <svg className="size-4 fill-emerald-600" viewBox="0 0 24 24">
+                <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.664-.698c.969.587 1.961.916 2.8.916 3.182 0 5.768-2.587 5.769-5.766.001-3.182-2.584-5.769-5.773-5.769zm10.222 5.766c-.002 5.61-4.568 10.174-10.179 10.174-1.745 0-3.454-.45-4.966-1.305l-5.553 1.456 1.481-5.412c-.938-1.576-1.433-3.39-1.434-5.234.002-5.61 4.568-10.174 10.18-10.174 5.61 0 10.174 4.563 10.176 10.174z" />
+              </svg>
+            </Button>
+
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="size-8 rounded-full text-muted-foreground hover:text-[#C09A5B] hover:bg-secondary/70"
+              aria-label={isFavorite ? "Remover dos favoritos" : "Guardar nos favoritos"}
+              onClick={handleFavClick}
+            >
+              <Heart
+                className={`size-4 transition-transform duration-200 active:scale-125 ${
+                  isFavorite
+                    ? "fill-[#C09A5B] text-[#C09A5B]"
+                    : "text-muted-foreground hover:text-[#C09A5B]"
+                }`}
+              />
+            </Button>
+          </div>
         </div>
 
         {/* Nome do ATM */}
@@ -182,6 +216,40 @@ export function AtmCard({
         <p className="mt-1 text-xs text-muted-foreground line-clamp-1">
           {atm.area}
         </p>
+
+        {/* Indicadores de Fila e Notas */}
+        {(real.queueTime || real.notesAvailable) && (
+          <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+            {real.queueTime && (
+              <span
+                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                  real.queueTime === "none"
+                    ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300"
+                    : real.queueTime === "short"
+                    ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                    : real.queueTime === "medium"
+                    ? "bg-amber-500/15 text-amber-800 dark:text-amber-300"
+                    : "bg-red-500/15 text-red-800 dark:text-red-300"
+                }`}
+              >
+                <Users className="size-2.5" />
+                {real.queueTime === "none"
+                  ? "Sem fila"
+                  : real.queueTime === "short"
+                  ? "Fila < 5 min"
+                  : real.queueTime === "medium"
+                  ? "Fila 5-15 min"
+                  : "Fila > 15 min"}
+              </span>
+            )}
+            {real.notesAvailable && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-muted/80 px-2 py-0.5 text-[10px] font-medium text-foreground">
+                <Banknote className="size-2.5 text-[#C09A5B]" />
+                {real.notesAvailable}
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Separador subtil */}
         <div className="my-3 border-t border-border/60" />

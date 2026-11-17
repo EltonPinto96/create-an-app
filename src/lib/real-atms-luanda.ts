@@ -15,6 +15,8 @@ export const REAL_ATMS_LUANDA: RealAtm[] = [
     lng: 13.35277,
     maps_url: "https://maps.app.goo.gl/2fayq3ih5s2GgyoX6",
     expiresIn: "Activo por 2 horas",
+    queueTime: "short",
+    notesAvailable: "Notas de 2.000 e 5.000 Kz",
   },
   {
     id: "real-atlantico-belas",
@@ -29,6 +31,8 @@ export const REAL_ATMS_LUANDA: RealAtm[] = [
     lng: 13.1861,
     maps_url: "https://maps.google.com/?q=-8.9243,13.1861",
     expiresIn: "Activo por 2 horas",
+    queueTime: "none",
+    notesAvailable: "Notas de 5.000 Kz",
   },
   {
     id: "real-atlantico-aeroporto",
@@ -43,6 +47,8 @@ export const REAL_ATMS_LUANDA: RealAtm[] = [
     lng: 13.2311,
     maps_url: "https://maps.google.com/?q=-8.8583,13.2311",
     expiresIn: "Activo por 2 horas",
+    queueTime: "short",
+    notesAvailable: "Notas de 1.000, 2.000 e 5.000 Kz",
   },
 
   // ── BAI — Banco Angolano de Investimentos ────────────────
@@ -59,6 +65,8 @@ export const REAL_ATMS_LUANDA: RealAtm[] = [
     lng: 13.2341,
     maps_url: "https://maps.google.com/?q=-8.8149,13.2341",
     expiresIn: "Activo por 2 horas",
+    queueTime: "medium",
+    notesAvailable: "Notas de 5.000 Kz",
   },
   {
     id: "real-bai-kinaxixi",
@@ -69,10 +77,12 @@ export const REAL_ATMS_LUANDA: RealAtm[] = [
     updated: "Confirmado hoje às 09:50",
     confirmations: 2,
     isReal: true,
-    lat: -8.8220,
+    lat: -8.822,
     lng: 13.2277,
     maps_url: "https://maps.google.com/?q=-8.8220,13.2277",
     expiresIn: "Activo por 2 horas",
+    queueTime: "short",
+    notesAvailable: "Notas de 2.000 e 5.000 Kz",
   },
   {
     id: "real-bai-talatona",
@@ -87,6 +97,8 @@ export const REAL_ATMS_LUANDA: RealAtm[] = [
     lng: 13.1883,
     maps_url: "https://maps.google.com/?q=-8.9177,13.1883",
     expiresIn: "Activo por 2 horas",
+    queueTime: "none",
+    notesAvailable: "Notas de 5.000 Kz",
   },
   {
     id: "real-bai-morro-bento",
@@ -101,6 +113,8 @@ export const REAL_ATMS_LUANDA: RealAtm[] = [
     lng: 13.2374,
     maps_url: "https://maps.google.com/?q=-8.8534,13.2374",
     expiresIn: "Activo por 2 horas",
+    queueTime: "short",
+    notesAvailable: "Notas de 2.000 Kz",
   },
   {
     id: "real-bai-viana",
@@ -115,6 +129,8 @@ export const REAL_ATMS_LUANDA: RealAtm[] = [
     lng: 13.3744,
     maps_url: "https://maps.google.com/?q=-8.9242,13.3744",
     expiresIn: "Activo por 2 horas",
+    queueTime: "long",
+    notesAvailable: "Notas de 5.000 Kz",
   },
   {
     id: "real-bai-kilamba",
@@ -125,10 +141,12 @@ export const REAL_ATMS_LUANDA: RealAtm[] = [
     updated: "Confirmado hoje às 10:05",
     confirmations: 2,
     isReal: true,
-    lat: -8.9950,
-    lng: 13.2620,
+    lat: -8.995,
+    lng: 13.262,
     maps_url: "https://maps.google.com/?q=-8.9950,13.2620",
     expiresIn: "Activo por 2 horas",
+    queueTime: "medium",
+    notesAvailable: "Notas de 2.000 e 5.000 Kz",
   },
 
   // ── BFA — Banco de Fomento Angola ─────────────────────────
@@ -145,6 +163,8 @@ export const REAL_ATMS_LUANDA: RealAtm[] = [
     lng: 13.2335,
     maps_url: "https://maps.google.com/?q=-8.8181,13.2335",
     expiresIn: "Activo por 2 horas",
+    queueTime: "short",
+    notesAvailable: "Notas de 5.000 Kz",
   },
   {
     id: "real-bfa-belas",
@@ -156,9 +176,11 @@ export const REAL_ATMS_LUANDA: RealAtm[] = [
     confirmations: 2,
     isReal: true,
     lat: -8.9211,
-    lng: 13.1830,
+    lng: 13.183,
     maps_url: "https://maps.google.com/?q=-8.9211,13.1830",
     expiresIn: "Activo por 2 horas",
+    queueTime: "none",
+    notesAvailable: "Notas de 2.000 e 5.000 Kz",
   },
   {
     id: "real-bfa-morro-bento",
@@ -170,9 +192,11 @@ export const REAL_ATMS_LUANDA: RealAtm[] = [
     confirmations: 1,
     isReal: true,
     lat: -8.8549,
-    lng: 13.2330,
+    lng: 13.233,
     maps_url: "https://maps.google.com/?q=-8.8549,13.2330",
     expiresIn: "Activo por 2 horas",
+    queueTime: "short",
+    notesAvailable: "Notas de 5.000 Kz",
   },
   {
     id: "real-bfa-viana",
@@ -184,9 +208,11 @@ export const REAL_ATMS_LUANDA: RealAtm[] = [
     confirmations: 2,
     isReal: true,
     lat: -8.9238,
-    lng: 13.3760,
+    lng: 13.376,
     maps_url: "https://maps.google.com/?q=-8.9238,13.3760",
     expiresIn: "Activo por 2 horas",
+    queueTime: "medium",
+    notesAvailable: "Notas de 2.000 Kz",
   },
 
   // ── Banco BIC ─────────────────────────────────────────────
@@ -203,6 +229,8 @@ export const REAL_ATMS_LUANDA: RealAtm[] = [
     lng: 13.2355,
     maps_url: "https://maps.google.com/?q=-8.8203,13.2355",
     expiresIn: "Activo por 2 horas",
+    queueTime: "short",
+    notesAvailable: "Notas de 2.000 e 5.000 Kz",
   },
   {
     id: "real-bic-talatona",
@@ -217,6 +245,8 @@ export const REAL_ATMS_LUANDA: RealAtm[] = [
     lng: 13.1854,
     maps_url: "https://maps.google.com/?q=-8.9183,13.1854",
     expiresIn: "Activo por 2 horas",
+    queueTime: "none",
+    notesAvailable: "Notas de 5.000 Kz",
   },
 
   // ── BPC — Banco de Poupança e Crédito ─────────────────────
@@ -233,6 +263,8 @@ export const REAL_ATMS_LUANDA: RealAtm[] = [
     lng: 13.2282,
     maps_url: "https://maps.google.com/?q=-8.8222,13.2282",
     expiresIn: "Activo por 2 horas",
+    queueTime: "medium",
+    notesAvailable: "Notas de 2.000 Kz",
   },
   {
     id: "real-bpc-cazenga",
@@ -244,9 +276,11 @@ export const REAL_ATMS_LUANDA: RealAtm[] = [
     confirmations: 1,
     isReal: true,
     lat: -8.8233,
-    lng: 13.2640,
+    lng: 13.264,
     maps_url: "https://maps.google.com/?q=-8.8233,13.2640",
     expiresIn: "Activo por 2 horas",
+    queueTime: "long",
+    notesAvailable: "Notas de 5.000 Kz",
   },
 
   // ── Banco Sol ─────────────────────────────────────────────
@@ -263,6 +297,8 @@ export const REAL_ATMS_LUANDA: RealAtm[] = [
     lng: 13.2371,
     maps_url: "https://maps.google.com/?q=-8.8215,13.2371",
     expiresIn: "Activo por 2 horas",
+    queueTime: "short",
+    notesAvailable: "Notas de 2.000 e 5.000 Kz",
   },
   {
     id: "real-banco-sol-viana",
@@ -274,9 +310,11 @@ export const REAL_ATMS_LUANDA: RealAtm[] = [
     confirmations: 1,
     isReal: true,
     lat: -8.9253,
-    lng: 13.3760,
+    lng: 13.376,
     maps_url: "https://maps.google.com/?q=-8.9253,13.3760",
     expiresIn: "Activo por 2 horas",
+    queueTime: "medium",
+    notesAvailable: "Notas de 5.000 Kz",
   },
 
   // ── Standard Bank Angola ──────────────────────────────────
@@ -293,6 +331,8 @@ export const REAL_ATMS_LUANDA: RealAtm[] = [
     lng: 13.2311,
     maps_url: "https://maps.google.com/?q=-8.8181,13.2311",
     expiresIn: "Activo por 2 horas",
+    queueTime: "none",
+    notesAvailable: "Notas de 2.000 e 5.000 Kz",
   },
 
   // ── Banco Keve ────────────────────────────────────────────
@@ -309,5 +349,7 @@ export const REAL_ATMS_LUANDA: RealAtm[] = [
     lng: 13.2347,
     maps_url: "https://maps.google.com/?q=-8.8198,13.2347",
     expiresIn: "Activo por 2 horas",
+    queueTime: "short",
+    notesAvailable: "Notas de 5.000 Kz",
   },
 ];

@@ -15,12 +15,14 @@ import {
   MessageSquare,
   Building2,
   Info,
+  Users,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { type DemoAtm } from "@/lib/atm-demo-data";
 import { type RealAtm } from "@/components/AtmCard";
 import { openDirections, buildMapsUrl } from "@/lib/google-maps";
+import { openWhatsAppShare } from "@/lib/whatsapp-share";
 
 type AtmDetailsData = DemoAtm | RealAtm;
 
@@ -44,6 +46,7 @@ interface AtmDetailsProps {
   onClose: () => void;
   onAccount: () => void;
   onReport?: () => void;
+  onQuickNoCash?: (atm: RealAtm) => void;
   reportHistory?: ReportHistory[];
   isFavorite?: boolean;
   onToggleFavorite?: () => void;
@@ -94,6 +97,7 @@ export function AtmDetails({
   onClose,
   onAccount,
   onReport,
+  onQuickNoCash,
   reportHistory,
   isFavorite,
   onToggleFavorite,
@@ -247,7 +251,66 @@ export function AtmDetails({
               </p>
             </div>
           </div>
+
+          {/* 3. Indicador de Fila e Notas no Local */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+            <div className="rounded-2xl border border-border bg-card p-3.5 flex items-center gap-3">
+              <span className="flex size-9 items-center justify-center rounded-xl bg-[#C09A5B]/15 text-[#C09A5B] shrink-0">
+                <Users className="size-4" />
+              </span>
+              <div className="min-w-0">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                  Tempo de Fila Estimado
+                </span>
+                <span className="text-xs font-bold text-foreground">
+                  {real.queueTime === "none"
+                    ? "Sem fila (atendimento direto)"
+                    : real.queueTime === "short"
+                    ? "Fila rápida (< 5 min)"
+                    : real.queueTime === "medium"
+                    ? "Fila moderada (5 a 15 min)"
+                    : real.queueTime === "long"
+                    ? "Fila longa (+15 min)"
+                    : "Fila não reportada"}
+                </span>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-border bg-card p-3.5 flex items-center gap-3">
+              <span className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0">
+                <Banknote className="size-4 text-[#C09A5B]" />
+              </span>
+              <div className="min-w-0">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block">
+                  Notas Reportadas
+                </span>
+                <span className="text-xs font-bold text-foreground truncate block">
+                  {real.notesAvailable || "Notas não especificadas"}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
+
+        {/* Alerta Rápido: Dinheiro acabou de esgotar */}
+        {atm.availability === "available" && onQuickNoCash && (
+          <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="size-4 text-amber-600 shrink-0" />
+              <span className="text-foreground font-medium">
+                Chegaste ao caixa e o dinheiro acabou?
+              </span>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs font-bold border-amber-500/40 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20 rounded-xl"
+              onClick={() => onQuickNoCash(real)}
+            >
+              Reportar Esgotado
+            </Button>
+          </div>
+        )}
 
         {/* Aviso de Origem Comunitária */}
         <div className="mt-4 rounded-xl border border-border/80 bg-secondary/40 p-3.5 flex items-start gap-2.5 text-xs text-muted-foreground">
@@ -311,16 +374,39 @@ export function AtmDetails({
         )}
 
         {/* Ações / Botões Principais */}
-        <div className="mt-6 flex flex-col sm:flex-row items-center gap-3 pt-4 border-t border-border">
+        <div className="mt-6 flex flex-col sm:flex-row items-center gap-2.5 pt-4 border-t border-border">
           {onReport && (
             <Button
               className="w-full sm:flex-1 h-11 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs gap-2 shadow-sm"
               onClick={onReport}
             >
               <MessageSquare className="size-4 text-[#C09A5B]" />
-              Confirmar Disponibilidade
+              Confirmar Notas
             </Button>
           )}
+
+          <Button
+            variant="outline"
+            className="w-full sm:w-auto h-11 rounded-xl border-emerald-600/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 text-xs font-bold gap-2"
+            onClick={() =>
+              openWhatsAppShare({
+                bank: atm.bank,
+                name: atm.name,
+                area: atm.area,
+                availability: atm.availability,
+                updated: atm.updated,
+                queueTime: real.queueTime,
+                notesAvailable: real.notesAvailable,
+                lat: real.lat,
+                lng: real.lng,
+              })
+            }
+          >
+            <svg className="size-4 fill-emerald-600 shrink-0" viewBox="0 0 24 24">
+              <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.664-.698c.969.587 1.961.916 2.8.916 3.182 0 5.768-2.587 5.769-5.766.001-3.182-2.584-5.769-5.773-5.769zm10.222 5.766c-.002 5.61-4.568 10.174-10.179 10.174-1.745 0-3.454-.45-4.966-1.305l-5.553 1.456 1.481-5.412c-.938-1.576-1.433-3.39-1.434-5.234.002-5.61 4.568-10.174 10.18-10.174 5.61 0 10.174 4.563 10.176 10.174z" />
+            </svg>
+            Partilhar
+          </Button>
 
           {!isDemo && real.lat !== undefined && real.lng !== undefined && (
             <Button
@@ -329,7 +415,7 @@ export function AtmDetails({
               onClick={handleDirections}
             >
               <Navigation className="size-4 text-[#C09A5B]" />
-              Traçar Rota no Mapa
+              Rota
             </Button>
           )}
 
