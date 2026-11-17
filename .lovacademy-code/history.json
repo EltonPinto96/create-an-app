@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-11-17T08:16:57.661Z",
+  "updated_at": "2026-11-17T08:20:46.350Z",
   "messages": [
     {
       "role": "user",
@@ -62,6 +62,15 @@
     {
       "role": "assistant",
       "text": "Sim. Para o ATM KOTA, convém separar **onde os ATM estão** de **se têm dinheiro neste momento**: são informações diferentes e precisam de fontes diferentes.\n\n### Fonte dos ATM\n\nNão encontrei uma API pública documentada com uma lista completa e actualizada de todos os ATM de Angola. Há fontes parciais: o Banco Sol, por exemplo, tem um localizador que apresenta localização e estado dos ATM da própria rede; o BFA também publica localizações de máquinas, e o BAI divulga informação sobre os seus ATM Centers. Isso ajuda a iniciar o levantamento, mas não cobre necessariamente toda a rede nem garante dados actuais. [Localizador do Banco Sol](https://bancosol.egatecloud.ao/atm-multicaixa?lang=pt), [máquinas self-service BFA](https://www.bfa.ao/pt/particulares/servicos/maquinas-self-service/), [informação do BAI sobre ATM Centers](https://www.bancobai.ao/media/1xokrj2s/relatorio-e-contas-do-1-semestre-2025.pdf)\n\nA EMIS gere a Rede MULTICAIXA, enquanto cada banco de apoio é responsável pelo suporte logístico do ATM. Por isso, o melhor caminho para uma cobertura fiável é pedir dados autorizados à EMIS e aos bancos. [EMIS: glossário](https://emis.ao/pt/glossario/), [MULTICAIXA: perguntas frequentes](https://multicaixa.ao/pt/perguntas-frequentes)\n\nPara um primeiro piloto em Luanda, sugiro começar com uma lista pequena, compilada a partir de fontes dos bancos e verificada manualmente. Cada registo deve guardar banco, endereço, município, bairro, coordenadas, origem e data da última verificação. Os estados de disponibilidade podem começar como **reportes da comunidade**, com hora visível e validade de 60 minutos — sem apresentar dados antigos como actuais.\n\n### Supabase\n\nO Supabase pode guardar essa lista, os reportes e os favoritos, além de oferecer autenticação e actualizações em tempo real. A base inicial poderia ter tabelas para `atms`, `reports` e `favorites`. Para permitir consulta sem conta e proteger os envios, é importante configurar políticas de acesso por tabela com Row Level Security (RLS). [Visão geral da base de dados](https://supabase.com/docs/guides/database/overview), [RLS](https://supabase.com/docs/guides/database/postgres/row-level-security), [Realtime](https://supabase.com/docs/guides/realtime/getting_started)\n\nO fluxo seria:\n\n1. Criar um projecto Supabase e guardar o URL e a chave **publishable** nas configurações da aplicação.\n2. Criar a tabela de ATM e inserir apenas locais verificados, identificando a fonte dos dados.\n3. Configurar autenticação e favoritos.\n4. Permitir que utilizadores autenticados enviem reportes; cada um fica associado ao autor e ao horário.\n5. Mostrar publicamente os reportes aceites e calcular a validade de 60 minutos.\n6. Activar Realtime para actualizar o estado nos ecrãs abertos.\n\nA chave **secret** do Supabase não deve ser colocada no código do navegador; ela dá acesso elevado e deve ficar apenas em serviços de backend controlados. [Documentação oficial sobre chaves](https://supabase.com/docs/guides/getting-started/api-keys)\n\nEu começaria pelo levantamento de ATM em Luanda e pela criação do esquema de dados no Supabase. Assim, a aplicação pode evoluir com dados verificáveis enquanto se procura uma parceria para obter cobertura mais completa."
+    },
+    {
+      "role": "user",
+      "text": "eu pretendo adicionar os atm manualmente, aposterio r cada usuario podera adcinar os atm com os sem disponibilidade de valores que irão ser ou não aprovados por um adm e essa informação ficará disponivel na plataforma por duas horas. posso te passar a primeira localização real do ATM e a sua disponibilidade?",
+      "attachments": []
+    },
+    {
+      "role": "assistant",
+      "text": "Sim, pode enviar. Para cadastrar o primeiro ATM, passe:\n\n- **Banco e identificação** do ATM, se souber\n- **Endereço**, município e bairro\n- **Coordenadas** ou um ponto de referência, se tiver\n- **Disponibilidade**: tem dinheiro, não tem dinheiro ou está fora de serviço\n- **Data e hora** em que confirmou\n- **Origem da informação**: observação presencial ou outra\n\nVou tratar esse primeiro registo como dado real informado por si. Para a plataforma, a regra pode ser: o ATM e o reporte ficam pendentes até aprovação do administrador; depois de aprovado, a disponibilidade fica visível por duas horas."
     }
   ]
 }
