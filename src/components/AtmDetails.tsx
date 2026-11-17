@@ -32,6 +32,8 @@ interface AtmDetailsProps {
   onAccount: () => void;
   onReport?: () => void;
   reportHistory?: ReportHistory[];
+  isFavorite?: boolean;
+  onToggleFavorite?: () => void;
 }
 
 function DemoNotice() {
@@ -95,9 +97,23 @@ export function AtmDetails({ atm, onClose, onAccount, onReport, reportHistory }:
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">{atm.bank}</p>
           </div>
-          <Button variant="ghost" size="icon" className="-mr-2 -mt-2 size-9" aria-label="Fechar detalhes" onClick={onClose}>
-            <X className="size-4" />
-          </Button>
+          <div className="flex items-center gap-1 -mr-2 -mt-2">
+            {onToggleFavorite && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-9 text-muted-foreground hover:text-red-500"
+                aria-label={isFavorite ? "Remover dos favoritos" : "Guardar nos favoritos"}
+                title={isFavorite ? "Remover dos favoritos" : "Guardar nos favoritos"}
+                onClick={onToggleFavorite}
+              >
+                <Heart className={`size-4 ${isFavorite ? "fill-red-500 text-red-500" : ""}`} />
+              </Button>
+            )}
+            <Button variant="ghost" size="icon" className="size-9" aria-label="Fechar detalhes" onClick={onClose}>
+              <X className="size-4" />
+            </Button>
+          </div>
         </div>
 
         {isDemo && <DemoNotice />}

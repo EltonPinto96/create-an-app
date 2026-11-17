@@ -1,4 +1,4 @@
-import { Banknote, ChevronRight, Clock3, ExternalLink } from "lucide-react";
+import { Banknote, ChevronRight, Clock3, ExternalLink, Heart } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { type DemoAtm, type DemoAvailability } from "@/lib/atm-demo-data";
@@ -45,9 +45,11 @@ const statusCopy: Record<AtmAvailability, { label: string; className: string }> 
 interface AtmCardProps {
   atm: AtmCardData;
   onClick: () => void;
+  isFavorite?: boolean;
+  onToggleFavorite?: (e: React.MouseEvent) => void;
 }
 
-export function AtmCard({ atm, onClick }: AtmCardProps) {
+export function AtmCard({ atm, onClick, isFavorite, onToggleFavorite }: AtmCardProps) {
   const status = statusCopy[atm.availability] ?? statusCopy.stale;
   const isDemo = isDemoAtm(atm);
   const real = atm as RealAtm;
@@ -58,6 +60,11 @@ export function AtmCard({ atm, onClick }: AtmCardProps) {
       const url = real.maps_url ?? buildMapsUrl(real.lat, real.lng, atm.name);
       window.open(url, "_blank", "noopener,noreferrer");
     }
+  }
+
+  function handleFavClick(e: React.MouseEvent) {
+    e.stopPropagation();
+    onToggleFavorite?.(e);
   }
 
   return (
@@ -102,6 +109,31 @@ export function AtmCard({ atm, onClick }: AtmCardProps) {
           )}
         </span>
       </span>
+
+      {/* Botão de Favorito */}
+      {onToggleFavorite && (
+        <span
+          role="button"
+          tabIndex={0}
+          className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary hover:text-red-500 transition-colors"
+          aria-label={isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+          title={isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+          onClick={handleFavClick}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              e.stopPropagation();
+              onToggleFavorite(e as any);
+            }
+          }}
+        >
+          <Heart
+            className={`size-4 transition-transform active:scale-125 ${
+              isFavorite ? "fill-red-500 text-red-500" : "text-muted-foreground"
+            }`}
+          />
+        </span>
+      )}
 
       {/* Botão Google Maps (só dados reais) */}
       {!isDemo && real.lat !== undefined && (

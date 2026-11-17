@@ -42,6 +42,7 @@ import { AdminPanel } from "@/components/AdminPanel";
 import { InteractiveMap } from "@/components/InteractiveMap";
 import { useAuth } from "@/lib/auth-context";
 import { AuthModal } from "@/components/AuthModal";
+import { useFavorites } from "@/lib/use-favorites";
 
 type Section = "home" | "map" | "search" | "favorites" | "profile" | "admin";
 type Filter = "all" | DemoAvailability;
@@ -89,6 +90,7 @@ const statusCopy: Record<DemoAvailability, { label: string; className: string }>
 
 function Index() {
   const { user, profile, isAdmin } = useAuth();
+  const { favoriteIds, isFavorite, toggleFavorite } = useFavorites();
   const [section, setSection] = useState<Section>("home");
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
@@ -353,6 +355,8 @@ function Index() {
               locationMessage={locationMessage}
               onMap={() => setSection("map")}
               onSelect={setSelectedAtm}
+              isFavorite={isFavorite}
+              onToggleFavorite={toggleFavorite}
             />
           )}
           {section === "search" && (
@@ -363,10 +367,20 @@ function Index() {
               setFilter={setFilter}
               visibleAtms={visibleAtms}
               onSelect={setSelectedAtm}
+              isFavorite={isFavorite}
+              onToggleFavorite={toggleFavorite}
             />
           )}
           {section === "map" && <MapView atms={atmList} onSelect={setSelectedAtm} />}
-          {section === "favorites" && <AccountView kind="favorites" onProfile={() => setSection("profile")} />}
+          {section === "favorites" && (
+            <FavoritesView
+              atms={atmList}
+              favoriteIds={favoriteIds}
+              onSelect={setSelectedAtm}
+              onToggleFavorite={toggleFavorite}
+              onExplore={() => setSection("home")}
+            />
+          )}
           {section === "profile" && (
             <ProfileView
               onShowInfo={() => setShowInfo(true)}
@@ -389,6 +403,8 @@ function Index() {
                 setSection("profile");
               }}
               onReport={() => setReportingAtm(selectedAtm as RealAtm)}
+              isFavorite={selectedAtm ? isFavorite(selectedAtm.id) : false}
+              onToggleFavorite={() => selectedAtm && toggleFavorite(selectedAtm.id)}
               reportHistory={
                 (selectedAtm as RealAtm).isReal
                   ? [
@@ -557,6 +573,8 @@ function HomeView({
   locationMessage,
   onMap,
   onSelect,
+  isFavorite,
+  onToggleFavorite,
 }: {
   query: string;
   setQuery: (value: string) => void;
@@ -565,6 +583,8 @@ function HomeView({
   locationMessage: string;
   onMap: () => void;
   onSelect: (atm: AtmData) => void;
+  isFavorite: (id: string) => boolean;
+  onToggleFavorite: (id: string) => void;
 }) {
   const counts = [
     { key: "available", label: "Com dinheiro", amount: 1, icon: ArrowUpRight },
@@ -647,7 +667,13 @@ function HomeView({
         {visibleAtms.length ? (
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-2">
             {visibleAtms.slice(0, 4).map((atm) => (
-              <AtmCard key={atm.id} atm={atm} onClick={() => onSelect(atm)} />
+              <AtmCard
+                key={atm.id}
+                atm={atm}
+                onClick={() => onSelect(atm)}
+                isFavorite={isFavorite(atm.id)}
+                onToggleFavorite={() => onToggleFavorite(atm.id)}
+              />
             ))}
           </div>
         ) : <EmptyResults />}
@@ -663,6 +689,8 @@ function SearchView({
   setFilter,
   visibleAtms,
   onSelect,
+  isFavorite,
+  onToggleFavorite,
 }: {
   query: string;
   setQuery: (value: string) => void;
@@ -670,6 +698,8 @@ function SearchView({
   setFilter: (value: Filter) => void;
   visibleAtms: AtmData[];
   onSelect: (atm: AtmData) => void;
+  isFavorite: (id: string) => boolean;
+  onToggleFavorite: (id: string) => void;
 }) {
   return (
     <>
@@ -696,7 +726,15 @@ function SearchView({
         {visibleAtms.length} {visibleAtms.length === 1 ? (hasSupabase ? "ATM encontrado" : "exemplo encontrado") : (hasSupabase ? "ATM encontrados" : "exemplos encontrados")}
       </p>
       <div className="grid gap-3 md:grid-cols-2">
-        {visibleAtms.map((atm) => <AtmCard key={atm.id} atm={atm} onClick={() => onSelect(atm)} />)}
+        {visibleAtms.map((atm) => (
+          <AtmCard
+            key={atm.id}
+            atm={atm}
+            onClick={() => onSelect(atm)}
+            isFavorite={isFavorite(atm.id)}
+            onToggleFavorite={() => onToggleFavorite(atm.id)}
+          />
+        ))}
       </div>
       {!visibleAtms.length && <EmptyResults />}
     </>
@@ -722,21 +760,69 @@ function MapView({
   );
 }
 
-function AccountView({ kind, onProfile }: { kind: "favorites" | "profile"; onProfile: () => void }) {
-  const favorites = kind === "favorites";
+function FavoritesView({
+  atms,
+  favoriteIds,
+  onSelect,
+  onToggleFavorite,
+  onExplore,
+}: {
+  atms: AtmData[];
+  favoriteIds: string[];
+  onSelect: (atm: AtmData) => void;
+  onToggleFavorite: (id: string) => void;
+  onExplore: () => void;
+}) {
+  const favoriteAtms = useMemo(
+    () => atms.filter((atm) => favoriteIds.includes(atm.id)),
+    [atms, favoriteIds]
+  );
+
   return (
     <>
-      <PageHeading eyebrow={favorites ? "Os teus ATM" : "A tua conta"} title={favorites ? "Favoritos" : "Perfil"} text={favorites ? "Guarda os ATM que consultas com frequência." : "Acede ao teu perfil, contribuições e preferências."} />
-      <div className="grid min-h-[320px] place-items-center border border-border bg-card px-5 py-12 text-center">
-        <div className="max-w-md">
-          <span className="mx-auto flex size-14 items-center justify-center rounded-md bg-secondary text-primary">
-            {favorites ? <Heart className="size-6" aria-hidden="true" /> : <UserRound className="size-6" aria-hidden="true" />}
-          </span>
-          <h2 className="mt-4 font-display text-xl font-semibold">{favorites ? "Favoritos com conta" : "Conta disponível numa próxima etapa"}</h2>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">{favorites ? "Para guardar e sincronizar favoritos, será necessário iniciar sessão. As contas serão activadas depois da validação desta interface." : "O registo, início de sessão e perfil pessoal serão ligados numa próxima etapa. Ainda não aceitamos palavras-passe neste ecrã."}</p>
-          {favorites && <Button variant="outline" className="mt-5 rounded-md" onClick={onProfile}>Ver perfil</Button>}
+      <PageHeading
+        eyebrow="Os teus ATMs"
+        title="Favoritos"
+        text="Acede rapidamente aos ATMs que consultas com mais frequência em Luanda."
+      />
+
+      {favoriteAtms.length === 0 ? (
+        <div className="grid min-h-[320px] place-items-center border border-border bg-card px-5 py-12 text-center rounded-xl shadow-sm">
+          <div className="max-w-md">
+            <span className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-secondary text-primary">
+              <Heart className="size-6 text-muted-foreground" aria-hidden="true" />
+            </span>
+            <h2 className="mt-4 font-display text-xl font-semibold">
+              Ainda não tens ATMs favoritos
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              Clica no ícone de coração num ATM na lista ou nos detalhes para o guardar aqui e acompanhar a sua disponibilidade.
+            </p>
+            <Button className="mt-5 rounded-md font-semibold" onClick={onExplore}>
+              Explorar ATMs de Luanda
+            </Button>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+            <span>
+              {favoriteAtms.length} {favoriteAtms.length === 1 ? "ATM guardado" : "ATMs guardados"}
+            </span>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            {favoriteAtms.map((atm) => (
+              <AtmCard
+                key={atm.id}
+                atm={atm}
+                onClick={() => onSelect(atm)}
+                isFavorite={true}
+                onToggleFavorite={() => onToggleFavorite(atm.id)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </>
   );
 }
