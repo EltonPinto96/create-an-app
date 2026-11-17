@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth-context";
-import { supabase } from "@/lib/supabase";
+import { supabase, hasSupabase } from "@/lib/supabase";
 import { KusangaSymbol } from "@/components/KusangaLogo";
 
 interface AuthModalProps {
@@ -70,6 +70,11 @@ export function AuthModal({
     }
 
     setLoading(true);
+    if (!hasSupabase) {
+      setErrorMessage("Autenticação não configurada. Define as variáveis de ambiente do Supabase.");
+      setLoading(false);
+      return;
+    }
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
         redirectTo: typeof window !== "undefined" ? window.location.origin : undefined,

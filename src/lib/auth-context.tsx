@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
-import { supabase } from "./supabase";
+import { supabase, hasSupabase } from "./supabase";
 
 export interface UserProfile {
   id: string;
@@ -30,7 +30,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Carrega perfil e permissões de admin para o utilizador
   async function loadUserData(currentUser: User | null) {
-    if (!currentUser) {
+    if (!currentUser || !hasSupabase) {
       setProfile(null);
       setIsAdmin(false);
       return;
@@ -47,7 +47,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (prof) {
         setProfile(prof as UserProfile);
       } else {
-        // Fallback para metadados locais
         setProfile({
           id: currentUser.id,
           display_name:
@@ -68,7 +67,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsAdmin(Boolean(adminRecord));
     } catch (err) {
       console.warn("Erro ao carregar dados do perfil/admin:", err);
-      // Fallback
       setProfile({
         id: currentUser.id,
         display_name: currentUser.email?.split("@")[0] || "Utilizador",
@@ -79,6 +77,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
+    // Se não há Supabase configurado, encerrar o loading imediatamente
+    if (!hasSupabase) {
+      setLoading(false);
+      return;
+    }
+
     // 1. Obter sessão inicial
     supabase.auth
       .getSession()
@@ -110,11 +114,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   async function signIn(email: string, password: string) {
+    if (!hasSupabase) return { error: new Error("Backend não configurado. Contacta o administrador.") };
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
       return { error: error ? new Error(error.message) : null };
     } catch (err: any) {
       return { error: err };
@@ -122,24 +124,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function signUp(email: string, password: string, displayName?: string) {
+    if (!hasSupabase) return { error: new Error("Backend não configurado. Contacta o administrador.") };
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          data: {
-            display_name: displayName || email.split("@")[0],
-          },
-        },
+        options: { data: { display_name: displayName || email.split("@")[0] } },
       });
 
-      if (error) {
-        return { error: new Error(error.message) };
-      }
+      if (error) return { error: new Error(error.message) };
 
-      // Se não há sessão criada, o Supabase pode exigir confirmação de email
       const requiresEmailConfirmation = !data.session;
-
       return { error: null, requiresEmailConfirmation };
     } catch (err: any) {
       return { error: err };
@@ -147,6 +142,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function signOut() {
+    if (!hasSupabase) {
+      setProfile(null);
+      setIsAdmin(false);
+      return { error: null };
+    }
     try {
       const { error } = await supabase.auth.signOut();
       setProfile(null);
@@ -159,16 +159,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{
-        user,
-        session,
-        profile,
-        isAdmin,
-        loading,
-        signIn,
-        signUp,
-        signOut,
-      }}
+      value={{ user, session, profile, isAdmin, loading, signIn, signUp, signOut }}
     >
       {children}
     </AuthContext.Provider>

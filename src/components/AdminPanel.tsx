@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/lib/supabase";
+import { supabase, hasSupabase } from "@/lib/supabase";
 
 export interface PendingAtmItem {
   id: string;
@@ -54,6 +54,14 @@ export function AdminPanel({ onBackToApp }: AdminPanelProps) {
   async function loadData() {
     setIsLoading(true);
     setMessage(null);
+    if (!hasSupabase) {
+      setIsLoading(false);
+      setMessage({
+        text: "Supabase não configurado neste ambiente. Aceda com as variáveis de ambiente ativas.",
+        type: "error",
+      });
+      return;
+    }
     try {
       // 1. Carregar bancos
       const { data: banksData } = await supabase.from("banks").select("id, name").order("name");
@@ -106,6 +114,7 @@ export function AdminPanel({ onBackToApp }: AdminPanelProps) {
   }, []);
 
   async function handleApprove(atmId: string) {
+    if (!hasSupabase) return;
     setActionLoadingId(atmId);
     try {
       // Tenta via rpc primeiro, senão direto via update
@@ -128,6 +137,7 @@ export function AdminPanel({ onBackToApp }: AdminPanelProps) {
   }
 
   async function handleReject(atmId: string) {
+    if (!hasSupabase) return;
     setActionLoadingId(atmId);
     try {
       const { error: rpcErr } = await supabase.rpc("reject_atm", { target_atm_id: atmId });
@@ -150,7 +160,7 @@ export function AdminPanel({ onBackToApp }: AdminPanelProps) {
 
   async function handleAddBank(e: React.FormEvent) {
     e.preventDefault();
-    if (!newBankName.trim()) return;
+    if (!newBankName.trim() || !hasSupabase) return;
     setIsAddingBank(true);
     try {
       const { error } = await supabase.from("banks").insert({ name: newBankName.trim() });

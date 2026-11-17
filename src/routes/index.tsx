@@ -37,7 +37,7 @@ import { AtmDetails } from "@/components/AtmDetails";
 import { SubmitAtmForm, type SubmitAtmFormData } from "@/components/SubmitAtmForm";
 import { SubmitReportForm, type SubmitReportFormData } from "@/components/SubmitReportForm";
 import { useApprovedAtms } from "@/lib/atm-queries";
-import { supabase } from "@/lib/supabase";
+import { supabase, hasSupabase } from "@/lib/supabase";
 import { AdminPanel } from "@/components/AdminPanel";
 import { InteractiveMap } from "@/components/InteractiveMap";
 import { useAuth } from "@/lib/auth-context";
@@ -52,8 +52,6 @@ type Section = "home" | "map" | "search" | "favorites" | "profile" | "admin";
 type Filter = "all" | DemoAvailability;
 export type AtmData = DemoAtm | RealAtm;
 
-/** true quando VITE_SUPABASE_URL está configurado */
-const hasSupabase = Boolean(import.meta.env.VITE_SUPABASE_URL);
 
 export const Route = createFileRoute("/")({
   head: () => ({

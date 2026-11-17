@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { supabase } from './supabase'
+import { supabase, hasSupabase } from './supabase'
 import type {
   AtmWithLatestReport,
   AtmRow,
@@ -25,6 +25,8 @@ export const atmQueryKeys = {
 // ============================================================
 
 async function fetchApprovedAtms(): Promise<AtmWithLatestReport[]> {
+  if (!hasSupabase) return []
+
   const now = new Date().toISOString()
 
   // 1. Buscar ATMs aprovados com dados do banco
@@ -74,8 +76,8 @@ export function useApprovedAtms() {
   return useQuery({
     queryKey: atmQueryKeys.approved(),
     queryFn: fetchApprovedAtms,
-    staleTime: 1000 * 60 * 2, // 2 minutos (os reports expiram a cada 2h)
-    refetchInterval: 1000 * 60 * 5, // re-fetch a cada 5 minutos
+    staleTime: 1000 * 60 * 2, // 2 minutos
+    refetchInterval: hasSupabase ? 1000 * 60 * 5 : false,
   })
 }
 
@@ -85,6 +87,8 @@ export function useApprovedAtms() {
 // ============================================================
 
 async function submitAtm(payload: SubmitAtmPayload): Promise<AtmRow> {
+  if (!hasSupabase) throw new Error('Backend não configurado. Contacta o administrador.')
+
   const { data: session } = await supabase.auth.getSession()
   if (!session.session) throw new Error('Tens de estar autenticado para submeter um ATM.')
 
@@ -108,7 +112,6 @@ export function useSubmitAtm() {
   return useMutation({
     mutationFn: submitAtm,
     onSuccess: () => {
-      // Invalida a lista de ATMs aprovados (não muda visualmente, mas boa prática)
       queryClient.invalidateQueries({ queryKey: atmQueryKeys.approved() })
     },
   })
@@ -120,6 +123,8 @@ export function useSubmitAtm() {
 // ============================================================
 
 async function submitReport(payload: SubmitReportPayload) {
+  if (!hasSupabase) throw new Error('Backend não configurado. Contacta o administrador.')
+
   const { data: session } = await supabase.auth.getSession()
   if (!session.session) throw new Error('Tens de estar autenticado para submeter um reporte.')
 
@@ -145,7 +150,6 @@ export function useSubmitReport() {
   return useMutation({
     mutationFn: submitReport,
     onSuccess: (data) => {
-      // Invalida os ATMs aprovados para actualizar o latest_report
       queryClient.invalidateQueries({ queryKey: atmQueryKeys.approved() })
       queryClient.invalidateQueries({ queryKey: atmQueryKeys.reports(data.atm_id) })
     },
@@ -158,6 +162,8 @@ export function useSubmitReport() {
 // ============================================================
 
 async function fetchPendingAtms(): Promise<AtmRow[]> {
+  if (!hasSupabase) return []
+
   const { data, error } = await supabase
     .from('atms')
     .select(`
@@ -175,7 +181,7 @@ export function useAdminPendingAtms() {
   return useQuery({
     queryKey: atmQueryKeys.pending(),
     queryFn: fetchPendingAtms,
-    staleTime: 1000 * 30, // 30 segundos
+    staleTime: 1000 * 30,
   })
 }
 
@@ -185,6 +191,8 @@ export function useAdminPendingAtms() {
 // ============================================================
 
 async function approveAtm(atmId: string): Promise<AtmRow> {
+  if (!hasSupabase) throw new Error('Backend não configurado.')
+
   const { data: session } = await supabase.auth.getSession()
   if (!session.session) throw new Error('Tens de estar autenticado.')
 
@@ -221,6 +229,8 @@ export function useApproveAtm() {
 // ============================================================
 
 async function rejectAtm(atmId: string): Promise<AtmRow> {
+  if (!hasSupabase) throw new Error('Backend não configurado.')
+
   const { data: session } = await supabase.auth.getSession()
   if (!session.session) throw new Error('Tens de estar autenticado.')
 
