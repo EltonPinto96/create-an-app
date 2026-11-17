@@ -36,6 +36,7 @@ import { SubmitReportForm, type SubmitReportFormData } from "@/components/Submit
 import { useApprovedAtms } from "@/lib/atm-queries";
 import { supabase } from "@/lib/supabase";
 import { AdminPanel } from "@/components/AdminPanel";
+import { InteractiveMap } from "@/components/InteractiveMap";
 
 type Section = "home" | "map" | "search" | "favorites" | "profile" | "admin";
 type Filter = "all" | DemoAvailability;
@@ -345,7 +346,7 @@ function Index() {
               onSelect={setSelectedAtm}
             />
           )}
-          {section === "map" && <MapView onSearch={() => setSection("search")} />}
+          {section === "map" && <MapView atms={atmList} onSelect={setSelectedAtm} />}
           {section === "favorites" && <AccountView kind="favorites" onProfile={() => setSection("profile")} />}
           {section === "profile" && (
             <ProfileView
@@ -676,19 +677,21 @@ function SearchView({
   );
 }
 
-function MapView({ onSearch }: { onSearch: () => void }) {
+function MapView({
+  atms,
+  onSelect,
+}: {
+  atms: AtmData[];
+  onSelect: (atm: AtmData) => void;
+}) {
   return (
     <>
-      <PageHeading eyebrow="Explorar a cidade" title="Mapa" text="Encontra caixas automáticas perto de ti — quando a lista validada de ATM estiver disponível." />
-      <DemoNotice />
-      <div className="mt-5 grid min-h-[350px] place-items-center border border-border bg-secondary/60 px-5 py-12 text-center">
-        <div className="max-w-md">
-          <span className="mx-auto flex size-14 items-center justify-center rounded-md bg-background text-primary"><Map className="size-6" aria-hidden="true" /></span>
-          <h2 className="mt-4 font-display text-xl font-semibold">Mapa em preparação</h2>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">O mapa real depende da configuração do serviço de mapas e de uma lista validada de ATM. Não mostramos marcadores inventados.</p>
-          <Button className="mt-5 rounded-md" onClick={onSearch}><Search className="size-4" aria-hidden="true" />Ver ATM na pesquisa</Button>
-        </div>
-      </div>
+      <PageHeading
+        eyebrow="Explorar a cidade"
+        title="Mapa de Luanda"
+        text="Consulta a disponibilidade de caixas automáticos em tempo real. Clica nos marcadores para traçar rota ou avaliar."
+      />
+      <InteractiveMap atms={atms} onSelectAtm={onSelect} />
     </>
   );
 }
