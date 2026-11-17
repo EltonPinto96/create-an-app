@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="kotaGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#15803d" />
+      <stop offset="100%" stop-color="#0f5132" />
+    </linearGradient>
+  </defs>
+  <!-- Background with rounded corners -->
+  <rect width="512" height="512" rx="108" fill="url(#kotaGrad)" />
+  <!-- Cash & ATM Icon -->
+  <g fill="none" stroke="#ffffff" stroke-width="26" stroke-linecap="round" stroke-linejoin="round" transform="translate(66, 80)">
+    <rect x="20" y="30" width="340" height="210" rx="20" stroke-width="24"/>
+    <circle cx="190" cy="135" r="46" stroke-width="24"/>
+    <path d="M 56 75 L 86 75" stroke-width="24"/>
+    <path d="M 294 195 L 324 195" stroke-width="24"/>
+    <!-- Cash dispenser slot -->
+    <path d="M 50 280 L 330 280" stroke-width="26"/>
+    <!-- Note coming out -->
+    <rect x="110" y="270" width="160" height="36" rx="8" fill="#bef264" stroke="#ffffff" stroke-width="8"/>
+  </g>
+  <text x="256" y="450" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="50" font-weight="900" fill="#bef264" text-anchor="middle" letter-spacing="4">ATM KOTA</text>
+</svg>
