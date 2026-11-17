@@ -13,6 +13,8 @@ interface AuthContextType {
   session: Session | null;
   profile: UserProfile | null;
   isAdmin: boolean;
+  isModerator: boolean;
+  canModerate: boolean;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, displayName?: string) => Promise<{ error: Error | null; requiresEmailConfirmation?: boolean }>;
@@ -26,13 +28,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isModerator, setIsModerator] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Carrega perfil e permissões de admin para o utilizador
+  // Carrega perfil e permissões de admin/moderador para o utilizador
   async function loadUserData(currentUser: User | null) {
     if (!currentUser || !hasSupabase) {
       setProfile(null);
       setIsAdmin(false);
+      setIsModerator(false);
       return;
     }
 
@@ -64,7 +68,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .eq("user_id", currentUser.id)
         .maybeSingle();
 
-      setIsAdmin(Boolean(adminRecord));
+      const adminActive = Boolean(adminRecord);
+      setIsAdmin(adminActive);
+
+      // 3. Verificar se é moderador
+      if (adminActive) {
+        setIsModerator(true);
+      } else {
+        try {
+          const { data: modRecord } = await (supabase as any)
+            .from("moderator_roles")
+            .select("id, status")
+            .or(`user_id.eq.${currentUser.id},email.ilike.${currentUser.email}`)
+            .eq("status", "active")
+            .maybeSingle();
+
+          setIsModerator(Boolean(modRecord));
+        } catch {
+          setIsModerator(false);
+        }
+      }
     } catch (err) {
       console.warn("Erro ao carregar dados do perfil/admin:", err);
       setProfile({
@@ -73,6 +96,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         avatar_url: null,
       });
       setIsAdmin(false);
+      setIsModerator(false);
     }
   }
 
@@ -145,12 +169,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!hasSupabase) {
       setProfile(null);
       setIsAdmin(false);
+      setIsModerator(false);
       return { error: null };
     }
     try {
       const { error } = await supabase.auth.signOut();
       setProfile(null);
       setIsAdmin(false);
+      setIsModerator(false);
       return { error: error ? new Error(error.message) : null };
     } catch (err: any) {
       return { error: err };
@@ -159,7 +185,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, session, profile, isAdmin, loading, signIn, signUp, signOut }}
+      value={{
+        user,
+        session,
+        profile,
+        isAdmin,
+        isModerator,
+        canModerate: isAdmin || isModerator,
+        loading,
+        signIn,
+        signUp,
+        signOut,
+      }}
     >
       {children}
     </AuthContext.Provider>

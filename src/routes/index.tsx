@@ -92,7 +92,7 @@ const statusCopy: Record<DemoAvailability, { label: string; className: string }>
 };
 
 function Index() {
-  const { user, profile, isAdmin } = useAuth();
+  const { user, profile, isAdmin, isModerator, canModerate } = useAuth();
   const { favoriteIds, isFavorite, toggleFavorite } = useFavorites();
   const [section, setSection] = useState<Section>("home");
   const [query, setQuery] = useState("");
@@ -1219,7 +1219,7 @@ function ProfileView({
   onOpenAdmin: () => void;
   onOpenAuth: (mode: "login" | "register") => void;
 }) {
-  const { user, profile, isAdmin, signOut, loading } = useAuth();
+  const { user, profile, isAdmin, isModerator, signOut, loading } = useAuth();
   const [loggingOut, setLoggingOut] = useState(false);
 
   async function handleLogout() {
@@ -1254,11 +1254,15 @@ function ProfileView({
                   <Badge variant="outline" className="border-status-available/30 text-status-available text-[10px]">
                     Sessão ativa
                   </Badge>
-                  {isAdmin && (
-                    <Badge variant="outline" className="border-primary/30 text-primary text-[10px]">
-                      Admin
+                  {isAdmin ? (
+                    <Badge className="bg-[#C09A5B] text-[#26362F] font-bold text-[10px] border-none">
+                      Super Admin
                     </Badge>
-                  )}
+                  ) : isModerator ? (
+                    <Badge className="bg-emerald-700 text-white font-bold text-[10px] border-none">
+                      Moderador
+                    </Badge>
+                  ) : null}
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">{user.email}</p>
                 <p className="text-[11px] text-[#C09A5B] font-semibold mt-1">
@@ -1316,24 +1320,29 @@ function ProfileView({
         </div>
       )}
 
-      {/* Secção: Painel de Moderação (Admin) */}
-      <div className="mb-6 rounded-lg border border-primary/25 bg-primary/5 p-5 sm:p-6">
+      {/* Secção: Painel de Moderação (Admin ou Moderador) */}
+      <div className="mb-6 rounded-2xl border border-[#C09A5B]/30 bg-gradient-to-r from-[#26362F]/5 via-background to-[#C09A5B]/5 p-5 sm:p-6 shadow-sm">
         <div className="flex items-start gap-4">
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <ShieldCheck className="size-5" aria-hidden="true" />
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
+            <ShieldCheck className="size-5 text-[#C09A5B]" aria-hidden="true" />
           </span>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <p className="font-semibold text-foreground">Painel de Moderação</p>
-              <Badge variant="outline" className="border-primary/30 text-primary text-[10px]">
-                Administrador
+              <p className="font-display font-bold text-foreground">Painel de Moderação</p>
+              <Badge variant="outline" className="border-[#C09A5B]/40 text-[#C09A5B] bg-[#C09A5B]/10 font-bold text-[10px]">
+                {isAdmin ? "Super Administrador" : isModerator ? "Moderador Ativo" : "Equipa de Validação"}
               </Badge>
             </div>
-            <p className="mt-1 text-sm leading-5 text-muted-foreground">
-              Revê as sugestões de novos ATMs enviadas pelos cidadãos, verifica no Google Maps e aprova a publicação.
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">
+              {isAdmin
+                ? "Valida novos caixas, convida novos moderadores e gere a rede de bancos comerciais em Luanda."
+                : "Revê as sugestões de caixas enviadas pelos cidadãos, verifica localizações e aprova a publicação na rede."}
             </p>
-            <Button className="mt-4 rounded-md font-semibold" onClick={onOpenAdmin}>
-              <ShieldCheck className="mr-1.5 size-4" />
+            <Button
+              className="mt-4 rounded-xl font-bold text-xs bg-[#26362F] text-white hover:bg-[#26362F]/90"
+              onClick={onOpenAdmin}
+            >
+              <ShieldCheck className="mr-1.5 size-4 text-[#C09A5B]" />
               Abrir Painel de Moderação
             </Button>
           </div>
