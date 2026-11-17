@@ -43,10 +43,13 @@ import { InteractiveMap } from "@/components/InteractiveMap";
 import { useAuth } from "@/lib/auth-context";
 import { AuthModal } from "@/components/AuthModal";
 import { useFavorites } from "@/lib/use-favorites";
+import { BankStats } from "@/components/BankStats";
+import { useFavoriteNotifications } from "@/lib/use-favorite-notifications";
+import { NotificationsModal } from "@/components/NotificationsModal";
 
 type Section = "home" | "map" | "search" | "favorites" | "profile" | "admin";
 type Filter = "all" | DemoAvailability;
-type AtmData = DemoAtm | RealAtm;
+export type AtmData = DemoAtm | RealAtm;
 
 /** true quando VITE_SUPABASE_URL está configurado */
 const hasSupabase = Boolean(import.meta.env.VITE_SUPABASE_URL);
@@ -103,6 +106,7 @@ function Index() {
   const [reportingAtm, setReportingAtm] = useState<RealAtm | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<"login" | "register">("login");
+  const [showNotificationsModal, setShowNotificationsModal] = useState(false);
 
   function openAuth(mode: "login" | "register" = "login") {
     setAuthModalMode(mode);
@@ -148,6 +152,14 @@ function Index() {
 
     return [...dbMapped, ...remainingReal];
   }, [dbAtms]);
+
+  const {
+    notifications,
+    unreadCount,
+    markAllAsRead,
+    clearNotifications,
+    simulateStatusChange,
+  } = useFavoriteNotifications(favoriteIds, atmList);
 
   const bankOptions = useMemo(() => {
     const banks = Array.from(new Set(atmList.map((a) => a.bank))).filter(Boolean);
@@ -252,6 +264,9 @@ function Index() {
 
   async function handleSubmitReport(data: SubmitReportFormData): Promise<void> {
     if (reportingAtm) {
+      if (favoriteIds.includes(reportingAtm.id)) {
+        simulateStatusChange(reportingAtm.id, data.availability);
+      }
       if (hasSupabase && reportingAtm.id && reportingAtm.id.includes("-") && !reportingAtm.id.startsWith("sample")) {
         try {
           const { error } = await supabase.from("reports").insert({
@@ -313,12 +328,18 @@ function Index() {
               variant="ghost"
               size="icon"
               className="relative size-10 rounded-full"
-              aria-label="Avisos de demonstração"
-              title="Avisos de demonstração"
-              onClick={() => setShowInfo((value) => !value)}
+              aria-label="Avisos e Notificações dos Favoritos"
+              title="Avisos e Notificações"
+              onClick={() => setShowNotificationsModal(true)}
             >
               <Bell className="size-[18px]" aria-hidden="true" />
-              {!hasSupabase && <span className="absolute right-2 top-2 size-1.5 rounded-full bg-status-stale" />}
+              {unreadCount > 0 ? (
+                <span className="absolute right-1 top-1 flex size-4 items-center justify-center rounded-full bg-destructive text-[9px] font-bold text-destructive-foreground animate-bounce">
+                  {unreadCount}
+                </span>
+              ) : !hasSupabase ? (
+                <span className="absolute right-2 top-2 size-1.5 rounded-full bg-status-stale" />
+              ) : null}
             </Button>
             <Button
               variant="outline"
@@ -375,6 +396,7 @@ function Index() {
               query={query}
               setQuery={setQuery}
               visibleAtms={visibleAtms}
+              atmList={atmList}
               onLocation={useLocation}
               locationMessage={locationMessage}
               onMap={() => setSection("map")}
@@ -412,6 +434,9 @@ function Index() {
               onSelect={setSelectedAtm}
               onToggleFavorite={toggleFavorite}
               onExplore={() => setSection("home")}
+              notifications={notifications}
+              onSimulateChange={simulateStatusChange}
+              onOpenNotifications={() => setShowNotificationsModal(true)}
             />
           )}
           {section === "profile" && (
@@ -521,6 +546,17 @@ function Index() {
             onClose={() => setShowAuthModal(false)}
             defaultMode={authModalMode}
           />
+          {/* Modal de Notificações e Alertas dos Favoritos */}
+          <NotificationsModal
+            isOpen={showNotificationsModal}
+            onClose={() => setShowNotificationsModal(false)}
+            notifications={notifications}
+            onMarkAllAsRead={markAllAsRead}
+            onClearAll={clearNotifications}
+            favoriteAtms={atmList.filter((a) => favoriteIds.includes(a.id))}
+            onSimulateChange={simulateStatusChange}
+            onSelectAtm={setSelectedAtm}
+          />
         </main>
       </div>
 
@@ -602,6 +638,7 @@ function HomeView({
   query,
   setQuery,
   visibleAtms,
+  atmList,
   onLocation,
   locationMessage,
   onMap,
@@ -615,6 +652,7 @@ function HomeView({
   query: string;
   setQuery: (value: string) => void;
   visibleAtms: AtmData[];
+  atmList: AtmData[];
   onLocation: () => void;
   locationMessage: string;
   onMap: () => void;
@@ -625,12 +663,19 @@ function HomeView({
   setSelectedBank: (v: string) => void;
   bankOptions: string[];
 }) {
-  const counts = [
-    { key: "available", label: "Com dinheiro", amount: 1, icon: ArrowUpRight },
-    { key: "no-cash", label: "Sem dinheiro", amount: 1, icon: ArrowDownRight },
-    { key: "out-of-service", label: "Fora de serviço", amount: 1, icon: X },
-    { key: "stale", label: "Sem informação recente", amount: 1, icon: Clock3 },
-  ] as const;
+  const counts = useMemo(() => {
+    const avail = atmList.filter((a) => a.availability === "available").length;
+    const noCash = atmList.filter((a) => a.availability === "no-cash").length;
+    const offline = atmList.filter((a) => a.availability === "out-of-service").length;
+    const stale = atmList.filter((a) => a.availability === "stale" || !a.availability).length;
+
+    return [
+      { key: "available" as const, label: "Com dinheiro", amount: avail, icon: ArrowUpRight },
+      { key: "no-cash" as const, label: "Sem dinheiro", amount: noCash, icon: ArrowDownRight },
+      { key: "out-of-service" as const, label: "Fora de serviço", amount: offline, icon: X },
+      { key: "stale" as const, label: "Sem informação recente", amount: stale, icon: Clock3 },
+    ];
+  }, [atmList]);
 
   return (
     <>
@@ -688,6 +733,15 @@ function HomeView({
       </div>
 
       {!hasSupabase && <div className="mb-6"><DemoNotice /></div>}
+
+      {/* Estatísticas de Disponibilidade por Banco (Últimas 24h) */}
+      <div className="mb-8">
+        <BankStats
+          atms={atmList}
+          selectedBank={selectedBank}
+          onSelectBank={setSelectedBank}
+        />
+      </div>
 
       <section>
         <div className="mb-4 flex items-end justify-between gap-3">
@@ -865,25 +919,78 @@ function FavoritesView({
   onSelect,
   onToggleFavorite,
   onExplore,
+  notifications = [],
+  onSimulateChange,
+  onOpenNotifications,
 }: {
   atms: AtmData[];
   favoriteIds: string[];
   onSelect: (atm: AtmData) => void;
   onToggleFavorite: (id: string) => void;
   onExplore: () => void;
+  notifications?: import("@/lib/use-favorite-notifications").FavoriteNotification[];
+  onSimulateChange?: (atmId: string, newStatus: "available" | "no-cash" | "out-of-service" | "stale") => void;
+  onOpenNotifications?: () => void;
 }) {
   const favoriteAtms = useMemo(
     () => atms.filter((atm) => favoriteIds.includes(atm.id)),
     [atms, favoriteIds]
   );
 
+  const unreadCount = notifications.filter((n) => !n.read).length;
+
   return (
     <>
-      <PageHeading
-        eyebrow="Os teus ATMs"
-        title="Favoritos"
-        text="Acede rapidamente aos ATMs que consultas com mais frequência em Luanda."
-      />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+        <div>
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0] text-primary">Os teus ATMs</p>
+          <h1 className="font-display text-3xl font-semibold tracking-[0] sm:text-[34px]">Favoritos</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Acede rapidamente aos ATMs que consultas com mais frequência em Luanda.
+          </p>
+        </div>
+
+        {favoriteAtms.length > 0 && onOpenNotifications && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9 gap-2 text-xs font-semibold rounded-lg border-primary/30"
+            onClick={onOpenNotifications}
+          >
+            <Bell className="size-3.5 text-primary" />
+            Alertas dos Favoritos
+            {unreadCount > 0 && (
+              <Badge variant="destructive" className="h-4 px-1.5 text-[9px]">
+                {unreadCount}
+              </Badge>
+            )}
+          </Button>
+        )}
+      </div>
+
+      {favoriteAtms.length > 0 && (
+        <div className="mb-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4 text-xs">
+          <div className="flex items-center gap-2.5">
+            <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              <Bell className="size-3.5" />
+            </span>
+            <p className="text-foreground/90 leading-5">
+              <strong className="font-semibold">Monitorização em tempo real ativa:</strong> És alertado com notificações sempre que a disponibilidade destes caixas for atualizada.
+            </p>
+          </div>
+          {onSimulateChange && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 shrink-0 text-[11px] rounded-md font-semibold border-primary/30 text-primary hover:bg-primary/10"
+              onClick={() => onSimulateChange(favoriteAtms[0].id, "available")}
+              title="Testar como funciona a notificação em tempo real"
+            >
+              Testar Notificação
+            </Button>
+          )}
+        </div>
+      )}
 
       {favoriteAtms.length === 0 ? (
         <div className="grid min-h-[320px] place-items-center border border-border bg-card px-5 py-12 text-center rounded-xl shadow-sm">
