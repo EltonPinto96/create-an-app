@@ -1,6 +1,6 @@
 {
   "packageId": "ao.kusangakitadi.app",
-  "host": "eltonpinto96-create-an-app.pages.dev",
+  "host": "kusanga-kitadi.eltonpintoprinceso.workers.dev",
   "name": "KUSANGA KITADI — A força está na ligação",
   "launcherName": "Kusanga Kitadi",
   "display": "standalone",
@@ -14,9 +14,9 @@
   "backgroundColor": "#F7F4EC",
   "enableNotifications": true,
   "startUrl": "/",
-  "iconUrl": "https://eltonpinto96-create-an-app.pages.dev/icons/icon-512.png",
-  "maskableIconUrl": "https://eltonpinto96-create-an-app.pages.dev/icons/icon-maskable-512.png",
-  "monochromeIconUrl": "https://eltonpinto96-create-an-app.pages.dev/icons/icon-512.png",
+  "iconUrl": "https://kusanga-kitadi.eltonpintoprinceso.workers.dev/icons/icon-512.png",
+  "maskableIconUrl": "https://kusanga-kitadi.eltonpintoprinceso.workers.dev/icons/icon-maskable-512.png",
+  "monochromeIconUrl": "https://kusanga-kitadi.eltonpintoprinceso.workers.dev/icons/icon-512.png",
   "splashScreenFadeOutDuration": 300,
   "signingKey": {
     "path": "./android.keystore",
@@ -24,7 +24,7 @@
   },
   "appVersionName": "1.0.0",
   "appVersionCode": 1,
-  "webManifestUrl": "https://eltonpinto96-create-an-app.pages.dev/manifest.json",
+  "webManifestUrl": "https://kusanga-kitadi.eltonpintoprinceso.workers.dev/manifest.json",
   "generatorApp": "bubblewrap-cli",
   "sdkVersion": {
     "minSdkVersion": 21,
@@ -42,7 +42,7 @@
   "enableSiteSettingsShortcut": true,
   "isChromeOSOnly": false,
   "isMetaQuest": false,
-  "fullScopeUrl": "https://eltonpinto96-create-an-app.pages.dev/",
+  "fullScopeUrl": "https://kusanga-kitadi.eltonpintoprinceso.workers.dev/",
   "shortcuts": [
     {
       "name": "Mapa de ATM",
@@ -50,7 +50,7 @@
       "url": "/?section=map",
       "icons": [
         {
-          "src": "https://eltonpinto96-create-an-app.pages.dev/icons/icon-192.png",
+          "src": "https://kusanga-kitadi.eltonpintoprinceso.workers.dev/icons/icon-192.png",
           "sizes": "192x192"
         }
       ]
@@ -61,7 +61,7 @@
       "url": "/?section=search",
       "icons": [
         {
-          "src": "https://eltonpinto96-create-an-app.pages.dev/icons/icon-192.png",
+          "src": "https://kusanga-kitadi.eltonpintoprinceso.workers.dev/icons/icon-192.png",
           "sizes": "192x192"
         }
       ]
