@@ -310,3 +310,63 @@ export function useRejectAtm() {
     },
   })
 }
+
+// ============================================================
+// useUserReports
+// Histórico pessoal de contribuições do utilizador logado
+// ============================================================
+
+export interface UserPersonalReport {
+  id: string
+  atm_id: string
+  atm_name?: string
+  atm_bank?: string
+  availability: string
+  notes_available?: string | null
+  queue_time?: string | null
+  confirmed_at: string
+}
+
+export async function fetchUserReports(userId: string): Promise<UserPersonalReport[]> {
+  if (!hasSupabase || !userId) return []
+
+  const { data, error } = await supabase
+    .from('reports')
+    .select(`
+      id,
+      atm_id,
+      availability,
+      notes_available,
+      queue_time,
+      confirmed_at,
+      atm:atms(name, bank:banks(name))
+    `)
+    .eq('reported_by', userId)
+    .order('confirmed_at', { ascending: false })
+    .limit(10)
+
+  if (error) {
+    console.warn("Aviso ao buscar histórico pessoal de reportes:", error.message)
+    return []
+  }
+
+  return (data ?? []).map((r: any) => ({
+    id: r.id,
+    atm_id: r.atm_id,
+    atm_name: r.atm?.name || 'Caixa Automático',
+    atm_bank: r.atm?.bank?.name || 'Banco',
+    availability: r.availability,
+    notes_available: r.notes_available,
+    queue_time: r.queue_time,
+    confirmed_at: r.confirmed_at,
+  }))
+}
+
+export function useUserReports(userId: string | undefined) {
+  return useQuery({
+    queryKey: ['user-reports', userId],
+    queryFn: () => fetchUserReports(userId || ''),
+    enabled: Boolean(userId && hasSupabase),
+    staleTime: 1000 * 60, // 1 minuto
+  })
+}

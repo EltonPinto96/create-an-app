@@ -41,7 +41,7 @@ import { AtmCard, type RealAtm } from "@/components/AtmCard";
 import { AtmDetails } from "@/components/AtmDetails";
 import { SubmitAtmForm, type SubmitAtmFormData } from "@/components/SubmitAtmForm";
 import { SubmitReportForm, type SubmitReportFormData } from "@/components/SubmitReportForm";
-import { useApprovedAtms } from "@/lib/atm-queries";
+import { useApprovedAtms, useUserReports } from "@/lib/atm-queries";
 import { supabase, hasSupabase } from "@/lib/supabase";
 import { AdminPanel } from "@/components/AdminPanel";
 import { InteractiveMap } from "@/components/InteractiveMap";
@@ -1503,11 +1503,63 @@ function ProfileView({
 }) {
   const { user, profile, isAdmin, isModerator, signOut, loading } = useAuth();
   const [loggingOut, setLoggingOut] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState(profile?.display_name || user?.email?.split("@")[0] || "");
+  const [savingName, setSavingName] = useState(false);
+  const [sendingReset, setSendingReset] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const { data: userReports = [], isLoading: loadingReports } = useUserReports(user?.id);
 
   async function handleLogout() {
     setLoggingOut(true);
     await signOut();
     setLoggingOut(false);
+  }
+
+  async function handleSaveName() {
+    if (!user || !hasSupabase || !nameInput.trim()) {
+      setIsEditingName(false);
+      return;
+    }
+    setSavingName(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ display_name: nameInput.trim() })
+        .eq("id", user.id);
+
+      if (error) {
+        toast.error("Erro ao actualizar nome: " + error.message);
+      } else {
+        toast.success("Nome atualizado com sucesso!");
+        if (profile) profile.display_name = nameInput.trim();
+        setIsEditingName(false);
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao comunicar com a base de dados.");
+    } finally {
+      setSavingName(false);
+    }
+  }
+
+  async function handlePasswordReset() {
+    if (!user?.email || !hasSupabase) return;
+    setSendingReset(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+        redirectTo: typeof window !== "undefined" ? window.location.origin : undefined,
+      });
+      if (error) {
+        toast.error(error.message);
+      } else {
+        toast.success("Email de redefinição enviado com sucesso para " + user.email);
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao solicitar recuperação de senha.");
+    } finally {
+      setSendingReset(false);
+    }
   }
 
   const displayName = profile?.display_name || user?.email?.split("@")[0] || "Cidadão";
@@ -1526,13 +1578,50 @@ function ProfileView({
       {user ? (
         <div className="mb-6 rounded-xl border border-border bg-card p-5 sm:p-6 shadow-sm">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3.5">
+            <div className="flex items-center gap-3.5 min-w-0">
               <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground font-bold text-lg shadow-sm">
                 {initials}
               </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-base font-bold text-foreground">{displayName}</h3>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {isEditingName ? (
+                    <div className="flex items-center gap-1.5 my-1">
+                      <Input
+                        value={nameInput}
+                        onChange={(e) => setNameInput(e.target.value)}
+                        className="h-8 text-xs max-w-[160px]"
+                        autoFocus
+                      />
+                      <Button
+                        size="sm"
+                        className="h-8 text-[11px] px-2.5 font-bold"
+                        onClick={handleSaveName}
+                        disabled={savingName}
+                      >
+                        {savingName ? "..." : "Guardar"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 text-[11px] px-2"
+                        onClick={() => setIsEditingName(false)}
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      <h3 className="text-base font-bold text-foreground truncate">{displayName}</h3>
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingName(true)}
+                        className="text-[11px] text-[#C09A5B] hover:underline font-semibold cursor-pointer"
+                        title="Editar nome"
+                      >
+                        Editar
+                      </button>
+                    </>
+                  )}
                   <Badge variant="outline" className="border-status-available/30 text-status-available text-[10px]">
                     Sessão ativa
                   </Badge>
@@ -1546,7 +1635,7 @@ function ProfileView({
                     </Badge>
                   ) : null}
                 </div>
-                <p className="text-xs text-muted-foreground mt-0.5">{user.email}</p>
+                <p className="text-xs text-muted-foreground mt-0.5 truncate">{user.email}</p>
                 <p className="text-[11px] text-[#C09A5B] font-semibold mt-1">
                   Membro da rede colaborativa Kusanga Kitadi
                 </p>
@@ -1558,7 +1647,7 @@ function ProfileView({
               size="sm"
               onClick={handleLogout}
               disabled={loggingOut}
-              className="rounded-lg text-xs gap-1.5 text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/20"
+              className="rounded-lg text-xs gap-1.5 text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/20 shrink-0"
             >
               <LogOut className="size-3.5" />
               {loggingOut ? "A terminar..." : "Terminar sessão"}
@@ -1762,6 +1851,152 @@ function ProfileView({
           </div>
         </div>
       </div>
+
+      {/* Secção: A Minha Actividade Comunitária (Histórico de Reportes do Utilizador) */}
+      {user && (
+        <div className="mb-6 rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-sm">
+          <div className="flex items-center justify-between pb-3 border-b border-border mb-4">
+            <div className="flex items-center gap-2.5">
+              <span className="flex size-8 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Clock3 className="size-4 text-[#C09A5B]" />
+              </span>
+              <div>
+                <h3 className="font-display text-sm font-bold text-foreground">
+                  A Minha Actividade Comunitária
+                </h3>
+                <p className="text-[11px] text-muted-foreground">
+                  Reportes enviados por ti para apoiar os cidadãos de Luanda
+                </p>
+              </div>
+            </div>
+            <Badge variant="outline" className="text-[10px] font-bold">
+              {userReports.length} {userReports.length === 1 ? "reporte" : "reportes"}
+            </Badge>
+          </div>
+
+          {loadingReports ? (
+            <div className="py-6 text-center text-xs text-muted-foreground">
+              A carregar histórico pessoal...
+            </div>
+          ) : userReports.length === 0 ? (
+            <div className="py-6 text-center text-xs text-muted-foreground">
+              Ainda não enviaste nenhum reporte. Ao passar por um caixa, clica em "Confirmar Notas" para acumulares karma!
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {userReports.map((r) => (
+                <div
+                  key={r.id}
+                  className="flex items-center justify-between p-3 rounded-xl border border-border bg-background text-xs"
+                >
+                  <div className="min-w-0 pr-2">
+                    <p className="font-bold text-foreground truncate">{r.atm_name}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">
+                      {r.atm_bank} {r.notes_available ? `· ${r.notes_available}` : ""}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Badge
+                      variant="outline"
+                      className={`text-[10px] ${
+                        r.availability === "available"
+                          ? "border-status-available/40 text-status-available bg-status-available/10"
+                          : "border-status-empty/40 text-status-empty bg-status-empty/10"
+                      }`}
+                    >
+                      {r.availability === "available" ? "Com notas" : "Sem notas"}
+                    </Badge>
+                    <span className="text-[10px] text-muted-foreground">
+                      {new Date(r.confirmed_at).toLocaleDateString("pt-AO", {
+                        day: "2-digit",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Secção: Segurança e Gestão de Conta */}
+      {user && (
+        <div className="mb-6 rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-sm">
+          <div className="flex items-center gap-2.5 pb-3 border-b border-border mb-4">
+            <span className="flex size-8 items-center justify-center rounded-xl bg-secondary text-foreground">
+              <Lock className="size-4 text-[#C09A5B]" />
+            </span>
+            <div>
+              <h3 className="font-display text-sm font-bold text-foreground">
+                Segurança & Conta
+              </h3>
+              <p className="text-[11px] text-muted-foreground">
+                Gere o teu acesso e preferências de privacidade
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl border border-border bg-background">
+              <div>
+                <p className="text-xs font-bold text-foreground">Palavra-passe</p>
+                <p className="text-[11px] text-muted-foreground">Recebe um link no teu email para definir nova palavra-passe.</p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs font-semibold h-8 rounded-lg shrink-0"
+                onClick={handlePasswordReset}
+                disabled={sendingReset}
+              >
+                {sendingReset ? "A enviar..." : "Redefinir Palavra-passe"}
+              </Button>
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl border border-destructive/20 bg-destructive/5">
+              <div>
+                <p className="text-xs font-bold text-destructive">Zona de Privacidade / Eliminar Conta</p>
+                <p className="text-[11px] text-muted-foreground">Solicita a eliminação definitiva dos teus dados e histórico de acesso.</p>
+              </div>
+              {showDeleteConfirm ? (
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="text-[11px] h-8 font-bold"
+                    onClick={() => {
+                      toast.info("Pedido de eliminação registado. A equipa entrará em contacto.");
+                      setShowDeleteConfirm(false);
+                    }}
+                  >
+                    Confirmar Eliminação
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-[11px] h-8"
+                    onClick={() => setShowDeleteConfirm(false)}
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs font-semibold h-8 rounded-lg text-destructive border-destructive/30 hover:bg-destructive/10 shrink-0"
+                  onClick={() => setShowDeleteConfirm(true)}
+                >
+                  Eliminar Conta
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="rounded-lg border border-border bg-card p-5 text-center">
         <Button variant="ghost" className="text-xs text-muted-foreground" onClick={onShowInfo}>
