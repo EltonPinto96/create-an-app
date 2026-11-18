@@ -370,3 +370,130 @@ export function useUserReports(userId: string | undefined) {
     staleTime: 1000 * 60, // 1 minuto
   })
 }
+
+// ============================================================
+// useAdminRecentReports
+// Consulta os reportes mais recentes para auditoria e moderação
+// ============================================================
+
+export interface AdminReportAuditItem {
+  id: string
+  atm_id: string
+  atm_name: string
+  atm_bank: string
+  availability: string
+  notes_available: string | null
+  queue_time: string | null
+  comment: string | null
+  confirmed_at: string
+  expires_at: string
+  reported_by: string | null
+  reporter_name?: string
+}
+
+export async function fetchAdminRecentReports(): Promise<AdminReportAuditItem[]> {
+  if (!hasSupabase) return []
+
+  const { data, error } = await supabase
+    .from('reports')
+    .select(`
+      id,
+      atm_id,
+      availability,
+      notes_available,
+      queue_time,
+      comment,
+      confirmed_at,
+      expires_at,
+      reported_by,
+      atm:atms(name, bank:banks(name)),
+      profile:profiles(display_name)
+    `)
+    .order('confirmed_at', { ascending: false })
+    .limit(50)
+
+  if (error) {
+    console.warn('Erro ao carregar reportes para auditoria:', error.message)
+    return []
+  }
+
+  return (data ?? []).map((r: any) => ({
+    id: r.id,
+    atm_id: r.atm_id,
+    atm_name: r.atm?.name || 'Caixa Automático',
+    atm_bank: r.atm?.bank?.name || 'Banco',
+    availability: r.availability,
+    notes_available: r.notes_available,
+    queue_time: r.queue_time,
+    comment: r.comment,
+    confirmed_at: r.confirmed_at,
+    expires_at: r.expires_at,
+    reported_by: r.reported_by,
+    reporter_name: r.profile?.display_name || 'Utilizador Comunitário',
+  }))
+}
+
+export function useAdminRecentReports(enabled: boolean = true) {
+  return useQuery({
+    queryKey: ['admin-reports-audit'],
+    queryFn: fetchAdminRecentReports,
+    enabled: Boolean(enabled && hasSupabase),
+    staleTime: 1000 * 30, // 30 segundos
+  })
+}
+
+// ============================================================
+// useDeleteReport
+// Invalida e remove um reporte fraudulento ou spam
+// ============================================================
+
+export async function deleteReport(reportId: string): Promise<void> {
+  if (!hasSupabase) throw new Error('Backend não configurado.')
+
+  const { error } = await supabase
+    .from('reports')
+    .delete()
+    .eq('id', reportId)
+
+  if (error) throw error
+}
+
+export function useDeleteReport() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: deleteReport,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-reports-audit'] })
+      queryClient.invalidateQueries({ queryKey: atmQueryKeys.approved() })
+    },
+  })
+}
+
+// ============================================================
+// useDeleteAtm
+// Elimina definitivamente um ATM do sistema (Super Admin)
+// ============================================================
+
+export async function deleteAtm(atmId: string): Promise<void> {
+  if (!hasSupabase) throw new Error('Backend não configurado.')
+
+  const { error } = await supabase
+    .from('atms')
+    .delete()
+    .eq('id', atmId)
+
+  if (error) throw error
+}
+
+export function useDeleteAtm() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: deleteAtm,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: atmQueryKeys.approved() })
+      queryClient.invalidateQueries({ queryKey: atmQueryKeys.pending() })
+    },
+  })
+}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   AlertCircle,
   Building2,
@@ -20,6 +20,11 @@ import {
   Info,
   CheckSquare,
   Lock,
+  MessageSquare,
+  Search,
+  AlertTriangle,
+  TrendingUp,
+  PowerOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +37,12 @@ import {
   markNotificationAsRead,
   type UserRegistrationNotification,
 } from "@/lib/user-registration-notifications";
+import {
+  fetchAdminRecentReports,
+  deleteReport,
+  deleteAtm,
+  type AdminReportAuditItem,
+} from "@/lib/atm-queries";
 
 export interface PendingAtmItem {
   id: string;
@@ -62,15 +73,20 @@ interface AdminPanelProps {
 
 export function AdminPanel({ onBackToApp }: AdminPanelProps) {
   const { user, isAdmin, isModerator } = useAuth();
-  const [tab, setTab] = useState<"pending" | "approved" | "banks" | "moderators" | "registrations">("pending");
+  const [tab, setTab] = useState<"pending" | "approved" | "reports" | "banks" | "moderators" | "registrations">("pending");
   const [pendingAtms, setPendingAtms] = useState<PendingAtmItem[]>([]);
   const [approvedAtms, setApprovedAtms] = useState<PendingAtmItem[]>([]);
+  const [recentReports, setRecentReports] = useState<AdminReportAuditItem[]>([]);
   const [banks, setBanks] = useState<{ id: string; name: string }[]>([]);
   const [moderators, setModerators] = useState<ModeratorItem[]>([]);
   const [registrations, setRegistrations] = useState<UserRegistrationNotification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
+
+  // Filtros de pesquisa nas abas
+  const [approvedSearchQuery, setApprovedSearchQuery] = useState("");
+  const [reportsSearchQuery, setReportsSearchQuery] = useState("");
 
   // Formulário para novo banco
   const [newBankName, setNewBankName] = useState("");
@@ -151,6 +167,14 @@ export function AdminPanel({ onBackToApp }: AdminPanelProps) {
         if (regData) setRegistrations(regData);
       } catch {
         // Fallback já tratado internamente
+      }
+
+      // 6. Carregar Reportes Recentes para Auditoria
+      try {
+        const repData = await fetchAdminRecentReports();
+        if (repData) setRecentReports(repData);
+      } catch {
+        // Fallback
       }
     } catch (err: any) {
       console.error("Erro ao carregar dados do admin:", err);
@@ -321,6 +345,112 @@ export function AdminPanel({ onBackToApp }: AdminPanelProps) {
     }
   }
 
+  // Moderação de Reportes Comunitários
+  async function handleDeleteReport(reportId: string, atmName: string) {
+    if (!confirm(`Tens a certeza que desejas invalidar e remover este reporte de "${atmName}"?`)) return;
+    setActionLoadingId(reportId);
+    try {
+      await deleteReport(reportId);
+      setRecentReports((prev) => prev.filter((r) => r.id !== reportId));
+      setMessage({ text: `Reporte de "${atmName}" invalidado e removido da rede.`, type: "success" });
+    } catch (err: any) {
+      setMessage({ text: `Erro ao remover reporte: ${err.message}`, type: "error" });
+    } finally {
+      setActionLoadingId(null);
+    }
+  }
+
+  // Gestão de ATMs Aprovados: Desactivar / Suspender
+  async function handleDeactivateAtm(atmId: string, atmName: string) {
+    if (!confirm(`Desejas suspender/desactivar o caixa "${atmName}"? Deixará de estar visível para a comunidade.`)) return;
+    setActionLoadingId(atmId);
+    try {
+      const { error } = await supabase
+        .from("atms")
+        .update({ status: "rejected" })
+        .eq("id", atmId);
+      if (error) throw error;
+      setMessage({ text: `Caixa "${atmName}" suspenso e arquivado.`, type: "success" });
+      await loadData();
+    } catch (err: any) {
+      setMessage({ text: `Erro ao desativar caixa: ${err.message}`, type: "error" });
+    } finally {
+      setActionLoadingId(null);
+    }
+  }
+
+  // Eliminar Definitivamente ATM (Apenas Admin)
+  async function handleDeleteAtmPermanent(atmId: string, atmName: string) {
+    if (!confirm(`ATENÇÃO: Tens a certeza que desejas ELIMINAR DEFINITIVAMENTE o caixa "${atmName}"? Esta acção não pode ser anulada.`)) return;
+    setActionLoadingId(atmId);
+    try {
+      await deleteAtm(atmId);
+      setMessage({ text: `Caixa "${atmName}" eliminado permanentemente da base de dados.`, type: "success" });
+      await loadData();
+    } catch (err: any) {
+      setMessage({ text: `Erro ao eliminar caixa: ${err.message}`, type: "error" });
+    } finally {
+      setActionLoadingId(null);
+    }
+  }
+
+  // Eliminar Banco sem caixas associados
+  async function handleDeleteBank(bankId: string, bankName: string) {
+    const atmsCount =
+      approvedAtms.filter((a) => a.bank_name?.toLowerCase() === bankName.toLowerCase()).length +
+      pendingAtms.filter((a) => a.bank_name?.toLowerCase() === bankName.toLowerCase()).length;
+    if (atmsCount > 0) {
+      setMessage({
+        text: `Não é possível remover o banco "${bankName}" porque tem ${atmsCount} caixa(s) associado(s).`,
+        type: "error",
+      });
+      return;
+    }
+    if (!confirm(`Desejas remover o banco "${bankName}"?`)) return;
+    setActionLoadingId(bankId);
+    try {
+      const { error } = await supabase.from("banks").delete().eq("id", bankId);
+      if (error) throw error;
+      setMessage({ text: `Banco "${bankName}" removido com sucesso.`, type: "success" });
+      await loadData();
+    } catch (err: any) {
+      setMessage({ text: `Erro ao remover banco: ${err.message}`, type: "error" });
+    } finally {
+      setActionLoadingId(null);
+    }
+  }
+
+  // Métricas e Filtros
+  const availableReportsCount = recentReports.filter((r) => r.availability === "available").length;
+  const networkAvailabilityPercent =
+    recentReports.length > 0
+      ? Math.round((availableReportsCount / recentReports.length) * 100)
+      : 0;
+
+  const filteredApprovedAtms = useMemo(() => {
+    if (!approvedSearchQuery.trim()) return approvedAtms;
+    const q = approvedSearchQuery.toLowerCase();
+    return approvedAtms.filter(
+      (a) =>
+        a.name.toLowerCase().includes(q) ||
+        (a.bank_name && a.bank_name.toLowerCase().includes(q)) ||
+        a.address.toLowerCase().includes(q) ||
+        a.municipality.toLowerCase().includes(q)
+    );
+  }, [approvedAtms, approvedSearchQuery]);
+
+  const filteredReports = useMemo(() => {
+    if (!reportsSearchQuery.trim()) return recentReports;
+    const q = reportsSearchQuery.toLowerCase();
+    return recentReports.filter(
+      (r) =>
+        r.atm_name.toLowerCase().includes(q) ||
+        r.atm_bank.toLowerCase().includes(q) ||
+        (r.comment && r.comment.toLowerCase().includes(q)) ||
+        (r.reporter_name && r.reporter_name.toLowerCase().includes(q))
+    );
+  }, [recentReports, reportsSearchQuery]);
+
   return (
     <div className="space-y-6">
       {/* Cabeçalho do Painel Admin */}
@@ -388,35 +518,43 @@ export function AdminPanel({ onBackToApp }: AdminPanelProps) {
         </div>
       )}
 
-      {/* Cartões de Métricas */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
+      {/* Cartões de Métricas Globais da Rede */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <div className="rounded-2xl border border-border bg-card p-4">
-          <p className="text-xs font-medium text-muted-foreground">Pendentes de aprovação</p>
+          <p className="text-xs font-medium text-muted-foreground">Pendentes</p>
           <p className="mt-1 font-display text-2xl font-bold text-status-stale">
             {pendingAtms.length}
           </p>
+          <span className="text-[10px] text-muted-foreground">aguardam validação</span>
         </div>
         <div className="rounded-2xl border border-border bg-card p-4">
-          <p className="text-xs font-medium text-muted-foreground">ATMs Aprovados (Ativos)</p>
+          <p className="text-xs font-medium text-muted-foreground">ATMs Aprovados</p>
           <p className="mt-1 font-display text-2xl font-bold text-status-available">
             {approvedAtms.length}
           </p>
+          <span className="text-[10px] text-muted-foreground">ativos na rede</span>
         </div>
         <div className="rounded-2xl border border-border bg-card p-4">
-          <p className="text-xs font-medium text-muted-foreground">Bancos Cadastrados</p>
+          <p className="text-xs font-medium text-muted-foreground">Reportes Recentes</p>
+          <p className="mt-1 font-display text-2xl font-bold text-primary">
+            {recentReports.length}
+          </p>
+          <span className="text-[10px] text-muted-foreground">últimas contribuições</span>
+        </div>
+        <div className="rounded-2xl border border-[#C09A5B]/30 bg-[#C09A5B]/5 p-4">
+          <p className="text-xs font-medium text-[#C09A5B]">Saúde da Rede</p>
+          <p className="mt-1 font-display text-2xl font-bold text-[#C09A5B]">
+            {networkAvailabilityPercent}%
+          </p>
+          <span className="text-[10px] text-muted-foreground">{availableReportsCount} caixas com notas</span>
+        </div>
+        <div className="rounded-2xl border border-border bg-card p-4">
+          <p className="text-xs font-medium text-muted-foreground">Bancos Comerciais</p>
           <p className="mt-1 font-display text-2xl font-bold text-foreground">
             {banks.length}
           </p>
+          <span className="text-[10px] text-muted-foreground">instituições registadas</span>
         </div>
-        {isAdmin && (
-          <div className="rounded-2xl border border-[#C09A5B]/30 bg-[#C09A5B]/5 p-4">
-            <p className="text-xs font-medium text-[#C09A5B]">Equipa de Moderadores</p>
-            <p className="mt-1 font-display text-2xl font-bold text-[#C09A5B]">
-              {moderators.filter((m) => m.status === "active").length}
-              <span className="text-xs font-normal text-muted-foreground ml-1">ativos</span>
-            </p>
-          </div>
-        )}
       </div>
 
       {/* Abas */}
@@ -440,6 +578,19 @@ export function AdminPanel({ onBackToApp }: AdminPanelProps) {
           }`}
         >
           ATMs Aprovados ({approvedAtms.length})
+        </button>
+
+        {/* Aba: Auditoria de Reportes Comunitários */}
+        <button
+          onClick={() => setTab("reports")}
+          className={`border-b-2 px-4 py-2.5 text-xs font-semibold whitespace-nowrap flex items-center gap-1.5 transition-colors ${
+            tab === "reports"
+              ? "border-[#C09A5B] text-[#C09A5B]"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <MessageSquare className="size-3.5 text-[#C09A5B]" />
+          Auditoria de Reportes ({recentReports.length})
         </button>
 
         {/* Aba: Notificações de Novos Cadastros (Admins e Moderadores) */}
@@ -586,41 +737,204 @@ export function AdminPanel({ onBackToApp }: AdminPanelProps) {
 
       {/* Conteúdo da Aba 2: Aprovados */}
       {tab === "approved" && (
-        <div className="space-y-3">
-          {approvedAtms.map((atm) => (
-            <div
-              key={atm.id}
-              className="flex items-center justify-between rounded-2xl border border-border bg-card p-4"
-            >
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-[#C09A5B] uppercase tracking-wider">
-                    {atm.bank_name}
-                  </span>
-                  <span className="font-display text-sm font-bold text-foreground">{atm.name}</span>
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="relative flex-1 max-w-md">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={approvedSearchQuery}
+                onChange={(e) => setApprovedSearchQuery(e.target.value)}
+                placeholder="Pesquisar caixas aprovados por nome, banco ou município..."
+                className="h-10 pl-9 text-xs rounded-xl"
+              />
+            </div>
+            <span className="text-xs text-muted-foreground">
+              {filteredApprovedAtms.length} de {approvedAtms.length} caixas
+            </span>
+          </div>
+
+          {filteredApprovedAtms.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-border p-8 text-center text-xs text-muted-foreground">
+              Nenhum caixa encontrado para a pesquisa.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {filteredApprovedAtms.map((atm) => (
+                <div
+                  key={atm.id}
+                  className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4 transition-all hover:border-[#C09A5B]/40"
+                >
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-[#C09A5B] uppercase tracking-wider">
+                        {atm.bank_name}
+                      </span>
+                      <span className="font-display text-sm font-bold text-foreground">{atm.name}</span>
+                      <Badge variant="outline" className="border-status-available/30 text-status-available text-[10px]">
+                        Ativo
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {atm.address} · {atm.municipality} {atm.neighborhood && `(${atm.neighborhood})`}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2 self-end sm:self-center">
+                    {atm.maps_url && (
+                      <a
+                        href={atm.maps_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="rounded-xl border border-border p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                        title="Ver no Google Maps"
+                      >
+                        <ExternalLink className="size-4" />
+                      </a>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={actionLoadingId === atm.id}
+                      onClick={() => handleDeactivateAtm(atm.id, atm.name)}
+                      className="border-amber-500/30 text-amber-700 dark:text-amber-400 hover:bg-amber-500/10 rounded-xl text-xs font-semibold"
+                      title="Desativar este caixa e ocultar da comunidade"
+                    >
+                      <PowerOff className="mr-1 size-3.5" />
+                      Suspender
+                    </Button>
+                    {isAdmin && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={actionLoadingId === atm.id}
+                        onClick={() => handleDeleteAtmPermanent(atm.id, atm.name)}
+                        className="size-9 p-0 text-destructive hover:bg-destructive/10 rounded-xl"
+                        title="Eliminar permanentemente da base de dados"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {atm.address} · {atm.municipality}
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Conteúdo da Aba: Auditoria de Reportes Comunitários */}
+      {tab === "reports" && (
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-[#C09A5B]/30 bg-gradient-to-r from-[#26362F]/5 via-background to-[#C09A5B]/5 p-5">
+            <div className="flex items-start gap-3.5">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#C09A5B]/15 text-[#C09A5B]">
+                <MessageSquare className="size-5" />
+              </span>
+              <div>
+                <h3 className="font-display text-base font-bold text-foreground">
+                  Auditoria de Reportes em Tempo Real
+                </h3>
+                <p className="text-xs text-muted-foreground mt-1 max-w-2xl leading-relaxed">
+                  Fiscalize as confirmações presenciais submetidas pelos cidadãos. Se identificar informação incorreta, manipulada ou spam, invalide o reporte para proteger a fiabilidade da comunidade.
                 </p>
               </div>
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="border-status-available/30 text-status-available text-[10px]">
-                  Ativo na rede
-                </Badge>
-                {atm.maps_url && (
-                  <a
-                    href={atm.maps_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="rounded p-1 text-muted-foreground hover:text-foreground"
-                    title="Google Maps"
-                  >
-                    <ExternalLink className="size-4" />
-                  </a>
-                )}
-              </div>
             </div>
-          ))}
+          </div>
+
+          {/* Campo de pesquisa de reportes */}
+          <div className="relative max-w-md">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={reportsSearchQuery}
+              onChange={(e) => setReportsSearchQuery(e.target.value)}
+              placeholder="Filtrar por caixa, banco, relator ou comentário..."
+              className="h-10 pl-9 text-xs rounded-xl"
+            />
+          </div>
+
+          {filteredReports.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-border p-8 text-center text-xs text-muted-foreground">
+              Nenhum reporte encontrado para este filtro.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {filteredReports.map((rep) => {
+                const isAvail = rep.availability === "available";
+                const isNoCash = rep.availability === "no-cash";
+                return (
+                  <div
+                    key={rep.id}
+                    className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4 transition-all hover:border-[#C09A5B]/40"
+                  >
+                    <div className="space-y-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs font-bold text-[#C09A5B] uppercase tracking-wider">
+                          {rep.atm_bank}
+                        </span>
+                        <span className="font-display text-sm font-bold text-foreground truncate">
+                          {rep.atm_name}
+                        </span>
+                        <Badge
+                          variant="outline"
+                          className={
+                            isAvail
+                              ? "border-status-available/40 text-status-available bg-status-available/10 text-[10px]"
+                              : isNoCash
+                              ? "border-status-empty/40 text-status-empty bg-status-empty/10 text-[10px]"
+                              : "border-status-stale/40 text-status-stale text-[10px]"
+                          }
+                        >
+                          {isAvail ? "Com Notas" : isNoCash ? "Sem Notas" : "Fora de Serviço"}
+                        </Badge>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                        {rep.notes_available && (
+                          <span className="text-foreground font-medium">
+                            💵 {rep.notes_available}
+                          </span>
+                        )}
+                        {rep.queue_time && (
+                          <span>
+                            ⏱️ {rep.queue_time === "none" ? "Sem fila" : `Fila: ${rep.queue_time}`}
+                          </span>
+                        )}
+                        <span>
+                          👤 {rep.reporter_name}
+                        </span>
+                        <span>
+                          🕒 {new Date(rep.confirmed_at).toLocaleTimeString("pt-AO", { hour: "2-digit", minute: "2-digit" })} ({new Date(rep.confirmed_at).toLocaleDateString("pt-AO")})
+                        </span>
+                      </div>
+
+                      {rep.comment && (
+                        <p className="text-xs italic text-foreground/80 mt-1 bg-muted/40 px-2.5 py-1 rounded-lg">
+                          "{rep.comment}"
+                        </p>
+                      )}
+                    </div>
+
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={actionLoadingId === rep.id}
+                      onClick={() => handleDeleteReport(rep.id, rep.atm_name)}
+                      className="border-destructive/30 text-destructive hover:bg-destructive/10 rounded-xl text-xs font-semibold shrink-0"
+                    >
+                      {actionLoadingId === rep.id ? (
+                        <Loader2 className="size-3.5 animate-spin" />
+                      ) : (
+                        <>
+                          <Trash2 className="mr-1 size-3.5" />
+                          Invalidar Reporte
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
@@ -945,17 +1259,41 @@ export function AdminPanel({ onBackToApp }: AdminPanelProps) {
             </Button>
           </form>
 
-          {/* Lista de Bancos */}
+          {/* Lista de Bancos com Contagem de Caixas */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 pt-2">
-            {banks.map((b) => (
-              <div
-                key={b.id}
-                className="flex items-center gap-2.5 rounded-2xl border border-border bg-card p-3.5 text-xs shadow-xs"
-              >
-                <Building2 className="size-4 text-[#C09A5B] shrink-0" />
-                <span className="font-semibold text-foreground">{b.name}</span>
-              </div>
-            ))}
+            {banks.map((b) => {
+              const count =
+                approvedAtms.filter((a) => a.bank_name?.toLowerCase() === b.name.toLowerCase()).length +
+                pendingAtms.filter((a) => a.bank_name?.toLowerCase() === b.name.toLowerCase()).length;
+
+              return (
+                <div
+                  key={b.id}
+                  className="flex items-center justify-between rounded-2xl border border-border bg-card p-3.5 text-xs shadow-xs"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <Building2 className="size-4 text-[#C09A5B] shrink-0" />
+                    <div className="min-w-0">
+                      <span className="font-semibold text-foreground truncate block">{b.name}</span>
+                      <span className="text-[11px] text-muted-foreground">{count} caixa(s) associado(s)</span>
+                    </div>
+                  </div>
+
+                  {count === 0 && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={actionLoadingId === b.id}
+                      onClick={() => handleDeleteBank(b.id, b.name)}
+                      className="size-7 p-0 text-destructive hover:bg-destructive/10 rounded-lg shrink-0"
+                      title={`Remover banco "${b.name}"`}
+                    >
+                      <Trash2 className="size-3.5" />
+                    </Button>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
