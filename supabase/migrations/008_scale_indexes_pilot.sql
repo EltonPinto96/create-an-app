@@ -16,8 +16,9 @@ CREATE INDEX IF NOT EXISTS idx_reports_atm_created_desc
   ON reports (atm_id, created_at DESC);
 
 -- 4. Índice para histórico de contribuições do utilizador no perfil
-CREATE INDEX IF NOT EXISTS idx_reports_user_created_desc
-  ON reports (user_id, created_at DESC);
+-- NOTA: a coluna de utilizador em "reports" chama-se "reported_by" (não "user_id")
+CREATE INDEX IF NOT EXISTS idx_reports_reporter_created_desc
+  ON reports (reported_by, created_at DESC);
 
 -- 5. Índice para consultas rápidas na auditoria de moderação de reportes
 CREATE INDEX IF NOT EXISTS idx_reports_is_spam_created
