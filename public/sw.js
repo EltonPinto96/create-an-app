@@ -7,7 +7,11 @@ const STATIC_ASSETS = [
   "/kusanga-kitadi-logo.svg",
   "/kusanga-kitadi-logo-dark.svg",
   "/kusanga-kitadi-logo-light.svg",
-  "/kusanga-kitadi-symbol.svg"
+  "/kusanga-kitadi-symbol.svg",
+  "/icons/icon-192.png",
+  "/icons/icon-512.png",
+  "/icons/icon-maskable-192.png",
+  "/icons/icon-maskable-512.png"
 ];
 
 // Instalação do Service Worker

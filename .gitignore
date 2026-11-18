@@ -20,6 +20,13 @@ dist-ssr
 .wrangler/
 .dev.vars
 
+# Android / TWA — keystores (nunca commitar chaves privadas)
+*.keystore
+*.jks
+android-keystore/
+# Projecto Android gerado pelo Bubblewrap
+android/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

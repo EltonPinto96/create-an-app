@@ -1,0 +1,71 @@
+{
+  "packageId": "ao.kusangakitadi.app",
+  "host": "eltonpinto96-create-an-app.pages.dev",
+  "name": "KUSANGA KITADI — A força está na ligação",
+  "launcherName": "Kusanga Kitadi",
+  "display": "standalone",
+  "orientation": "portrait",
+  "themeColor": "#26362F",
+  "themeColorDark": "#26362F",
+  "navigationColor": "#26362F",
+  "navigationColorDark": "#1a2420",
+  "navigationDividerColor": "#C09A5B",
+  "navigationDividerColorDark": "#8a6e3f",
+  "backgroundColor": "#F7F4EC",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "iconUrl": "https://eltonpinto96-create-an-app.pages.dev/icons/icon-512.png",
+  "maskableIconUrl": "https://eltonpinto96-create-an-app.pages.dev/icons/icon-maskable-512.png",
+  "monochromeIconUrl": "https://eltonpinto96-create-an-app.pages.dev/icons/icon-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "kusanga-kitadi"
+  },
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "webManifestUrl": "https://eltonpinto96-create-an-app.pages.dev/manifest.json",
+  "generatorApp": "bubblewrap-cli",
+  "sdkVersion": {
+    "minSdkVersion": 21,
+    "targetSdkVersion": 34,
+    "compileSdkVersion": 34
+  },
+  "features": {
+    "locationDelegation": {
+      "enabled": true
+    }
+  },
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://eltonpinto96-create-an-app.pages.dev/",
+  "shortcuts": [
+    {
+      "name": "Mapa de ATM",
+      "short_name": "Mapa",
+      "url": "/?section=map",
+      "icons": [
+        {
+          "src": "https://eltonpinto96-create-an-app.pages.dev/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Pesquisar ATM",
+      "short_name": "Pesquisa",
+      "url": "/?section=search",
+      "icons": [
+        {
+          "src": "https://eltonpinto96-create-an-app.pages.dev/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ],
+  "shareTarget": {}
+}
