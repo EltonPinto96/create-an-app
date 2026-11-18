@@ -12,6 +12,7 @@ import {
   Check,
   Users,
   Share2,
+  Navigation,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -109,6 +110,7 @@ interface AtmCardProps {
   onClick: () => void;
   isFavorite?: boolean;
   onToggleFavorite?: (e: React.MouseEvent) => void;
+  distanceKm?: number | null;
 }
 
 export function AtmCard({
@@ -116,6 +118,7 @@ export function AtmCard({
   onClick,
   isFavorite,
   onToggleFavorite,
+  distanceKm,
 }: AtmCardProps) {
   const meta = statusMeta[atm.availability] ?? statusMeta.stale;
   const isDemo = isDemoAtm(atm);
@@ -223,6 +226,14 @@ export function AtmCard({
         <p className="mt-1 text-xs text-muted-foreground line-clamp-1">
           {atm.area}
         </p>
+
+        {/* Distância do utilizador */}
+        {distanceKm != null && (
+          <p className="mt-1.5 flex items-center gap-1 text-[11px] font-semibold text-[#C09A5B]">
+            <Navigation className="size-3" />
+            {distanceKm < 1 ? `${Math.round(distanceKm * 1000)} m` : `${distanceKm.toFixed(1)} km`} de si
+          </p>
+        )}
 
         {/* Indicadores de Fila e Notas */}
         {(real.queueTime || real.notesAvailable) && (

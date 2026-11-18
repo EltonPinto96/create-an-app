@@ -11,6 +11,8 @@ import {
   XCircle,
   Clock,
   Sparkles,
+  Search,
+  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -53,6 +55,7 @@ export function InteractiveMap({ atms, onSelectAtm, onOpenNearby }: InteractiveM
 
   const [activeFilter, setActiveFilter] = useState<string>("all");
   const [selectedBank, setSelectedBank] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const [selectedAtmInfo, setSelectedAtmInfo] = useState<AtmItem | null>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [locating, setLocating] = useState(false);
@@ -64,6 +67,7 @@ export function InteractiveMap({ atms, onSelectAtm, onOpenNearby }: InteractiveM
 
   // Filtra ATMs com coordenadas válidas
   const atmsWithCoords = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
     return atms
       .map((atm, index) => {
         const real = atm as RealAtm;
@@ -81,8 +85,13 @@ export function InteractiveMap({ atms, onSelectAtm, onOpenNearby }: InteractiveM
         return { ...atm, lat: fallback[0], lng: fallback[1] };
       })
       .filter((atm) => activeFilter === "all" || atm.availability === activeFilter)
-      .filter((atm) => selectedBank === "all" || atm.bank === selectedBank);
-  }, [atms, activeFilter, selectedBank]);
+      .filter((atm) => selectedBank === "all" || atm.bank === selectedBank)
+      .filter((atm) => {
+        if (!q) return true;
+        const target = `${atm.name} ${atm.bank} ${atm.area}`.toLowerCase();
+        return target.includes(q);
+      });
+  }, [atms, activeFilter, selectedBank, searchQuery]);
 
   // Inicializa mapa Leaflet
   useEffect(() => {
@@ -212,6 +221,7 @@ export function InteractiveMap({ atms, onSelectAtm, onOpenNearby }: InteractiveM
 
       marker.on("click", () => {
         setSelectedAtmInfo(atm);
+        map.setView([lat, lng], 15);
       });
 
       marker.addTo(layer);
@@ -281,6 +291,17 @@ export function InteractiveMap({ atms, onSelectAtm, onOpenNearby }: InteractiveM
       {/* Barra de Filtros no Topo do Mapa */}
       <div className="z-10 flex flex-wrap items-center justify-between gap-2.5 border-b border-border bg-background/95 p-3.5 backdrop-blur-md">
         <div className="flex flex-wrap items-center gap-1.5">
+          <div className="relative min-w-[140px] sm:min-w-[180px]">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Pesquisar no mapa..."
+              className="h-8 w-full rounded-lg border border-border bg-background pl-7 pr-2 text-xs font-medium text-foreground outline-none focus:border-[#C09A5B]"
+              aria-label="Pesquisar caixas no mapa"
+            />
+          </div>
           <button
             onClick={() => setActiveFilter("all")}
             className={`rounded-full px-3 py-1 text-xs font-bold transition-all ${
@@ -423,6 +444,30 @@ export function InteractiveMap({ atms, onSelectAtm, onOpenNearby }: InteractiveM
               </span>
             </div>
           </div>
+
+          {/* Fila e Notas no local */}
+          {((selectedAtmInfo as any).queueTime || (selectedAtmInfo as any).notesAvailable) && (
+            <div className="mt-2 flex flex-wrap gap-1.5 text-[10px]">
+              {(selectedAtmInfo as any).queueTime && (
+                <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 font-medium text-foreground">
+                  <Users className="size-2.5 text-[#C09A5B]" />
+                  {(selectedAtmInfo as any).queueTime === "none"
+                    ? "Sem fila"
+                    : (selectedAtmInfo as any).queueTime === "short"
+                    ? "Fila < 5 min"
+                    : (selectedAtmInfo as any).queueTime === "medium"
+                    ? "Fila 5-15 min"
+                    : "Fila > 15 min"}
+                </span>
+              )}
+              {(selectedAtmInfo as any).notesAvailable && (
+                <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 font-medium text-foreground">
+                  <Banknote className="size-2.5 text-[#C09A5B]" />
+                  {(selectedAtmInfo as any).notesAvailable}
+                </span>
+              )}
+            </div>
+          )}
 
           {/* Distância */}
           {distanceKm !== null && (

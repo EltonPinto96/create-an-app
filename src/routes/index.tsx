@@ -53,8 +53,9 @@ import { BankStats } from "@/components/BankStats";
 import { useFavoriteNotifications } from "@/lib/use-favorite-notifications";
 import { NotificationsModal } from "@/components/NotificationsModal";
 import { KusangaLogo, KusangaSymbol, KusangaSloganPill } from "@/components/KusangaLogo";
-import { NearbyAtmsModal } from "@/components/NearbyAtmsModal";
+import { NearbyAtmsModal, calculateDistanceKm } from "@/components/NearbyAtmsModal";
 import { FloatingNearbyButton } from "@/components/FloatingNearbyButton";
+import { SearchFiltersBar } from "@/components/SearchFiltersBar";
 
 type Section = "home" | "map" | "search" | "favorites" | "profile" | "admin";
 type Filter = "all" | DemoAvailability;
@@ -106,6 +107,8 @@ function Index() {
   const [filter, setFilter] = useState<Filter>("all");
   const [selectedBank, setSelectedBank] = useState<string>("all");
   const [selectedMunicipality, setSelectedMunicipality] = useState<string>("all");
+  const [selectedNeighborhood, setSelectedNeighborhood] = useState<string>("all");
+  const [sortByDistance, setSortByDistance] = useState<boolean>(false);
   const [locationMessage, setLocationMessage] = useState("");
   const [selectedAtm, setSelectedAtm] = useState<AtmData | null>(null);
   const [showInfo, setShowInfo] = useState(false);
@@ -224,19 +227,58 @@ function Index() {
     return banks.sort();
   }, [atmList]);
 
-  const municipalityOptions = [
-    "Maianga",
-    "Talatona",
-    "Viana",
-    "Cazenga",
-    "Kilamba",
-    "Ingombota",
-    "Belas",
-  ];
+  const municipalityOptions = useMemo(() => {
+    const set = new Set<string>();
+    const knownMunicipalities = [
+      "Belas",
+      "Cacuaco",
+      "Cazenga",
+      "Icolo e Bengo",
+      "Kilamba Kiaxi",
+      "Luanda",
+      "Maianga",
+      "Quiçama",
+      "Talatona",
+      "Viana",
+    ];
+    knownMunicipalities.forEach((m) => set.add(m));
+    atmList.forEach((atm) => {
+      if (atm.area) {
+        const parts = atm.area.split(",");
+        for (let i = 1; i < parts.length; i++) {
+          const p = parts[i]?.trim();
+          if (
+            p &&
+            p.length > 2 &&
+            !p.toLowerCase().includes("via") &&
+            !p.toLowerCase().includes("estrada") &&
+            !p.toLowerCase().includes("piso")
+          ) {
+            set.add(p);
+          }
+        }
+      }
+    });
+    return Array.from(set).sort();
+  }, [atmList]);
+
+  const neighborhoodOptions = useMemo(() => {
+    const set = new Set<string>();
+    atmList.forEach((atm) => {
+      if (atm.area) {
+        const parts = atm.area.split(",");
+        const n = parts[0]?.trim();
+        if (n && n.length > 1) {
+          set.add(n);
+        }
+      }
+    });
+    return Array.from(set).sort();
+  }, [atmList]);
 
   const visibleAtms = useMemo(() => {
     const needle = query.trim().toLocaleLowerCase("pt-AO");
-    return atmList.filter((atm) => {
+    const filtered = atmList.filter((atm) => {
       const matchesText = `${atm.name} ${atm.bank} ${atm.area}`
         .toLocaleLowerCase("pt-AO")
         .includes(needle);
@@ -248,9 +290,41 @@ function Index() {
       const matchesMunicipality =
         selectedMunicipality === "all" ||
         atm.area.toLowerCase().includes(selectedMunicipality.toLowerCase());
-      return matchesText && matchesAvail && matchesBank && matchesMunicipality;
+      const matchesNeighborhood =
+        selectedNeighborhood === "all" ||
+        atm.area.toLowerCase().includes(selectedNeighborhood.toLowerCase());
+      return matchesText && matchesAvail && matchesBank && matchesMunicipality && matchesNeighborhood;
     });
-  }, [filter, query, selectedBank, selectedMunicipality, atmList]);
+
+    if (sortByDistance && userCoords) {
+      return [...filtered].sort((a, b) => {
+        const latA = (a as any).lat;
+        const lngA = (a as any).lng;
+        const latB = (b as any).lat;
+        const lngB = (b as any).lng;
+        const distA =
+          typeof latA === "number" && typeof lngA === "number"
+            ? calculateDistanceKm(userCoords.lat, userCoords.lng, latA, lngA)
+            : 9999;
+        const distB =
+          typeof latB === "number" && typeof lngB === "number"
+            ? calculateDistanceKm(userCoords.lat, userCoords.lng, latB, lngB)
+            : 9999;
+        return distA - distB;
+      });
+    }
+
+    return filtered;
+  }, [
+    filter,
+    query,
+    selectedBank,
+    selectedMunicipality,
+    selectedNeighborhood,
+    sortByDistance,
+    userCoords,
+    atmList,
+  ]);
 
   function useLocation() {
     setIsLocating(true);
@@ -688,6 +762,7 @@ function Index() {
                 onSelect={setSelectedAtm}
                 isFavorite={isFavorite}
                 onToggleFavorite={toggleFavorite}
+                userCoords={userCoords}
               />
             </div>
           )}
@@ -708,6 +783,13 @@ function Index() {
                 selectedMunicipality={selectedMunicipality}
                 setSelectedMunicipality={setSelectedMunicipality}
                 municipalityOptions={municipalityOptions}
+                selectedNeighborhood={selectedNeighborhood}
+                setSelectedNeighborhood={setSelectedNeighborhood}
+                neighborhoodOptions={neighborhoodOptions}
+                sortByDistance={sortByDistance}
+                setSortByDistance={setSortByDistance}
+                userCoords={userCoords}
+                onRequestLocation={useLocation}
               />
             </div>
           )}
@@ -727,6 +809,7 @@ function Index() {
                 notifications={notifications}
                 onSimulateChange={simulateStatusChange}
                 onOpenNotifications={() => setShowNotificationsModal(true)}
+                userCoords={userCoords}
               />
             </div>
           )}
@@ -1012,6 +1095,7 @@ function HomeView({
   onSelect,
   isFavorite,
   onToggleFavorite,
+  userCoords,
 }: {
   query: string;
   setQuery: (value: string) => void;
@@ -1026,6 +1110,7 @@ function HomeView({
   onSelect: (atm: AtmData) => void;
   isFavorite: (id: string) => boolean;
   onToggleFavorite: (id: string) => void;
+  userCoords?: { lat: number; lng: number } | null;
 }) {
   const availableCount = atmList.filter((a) => a.availability === "available").length;
   const noCashCount = atmList.filter((a) => a.availability === "no-cash").length;
@@ -1201,15 +1286,25 @@ function HomeView({
 
         {confirmedWithCash.length > 0 ? (
           <div className="grid gap-3 sm:grid-cols-2">
-            {confirmedWithCash.map((atm) => (
-              <AtmCard
-                key={atm.id}
-                atm={atm}
-                onClick={() => onSelect(atm)}
-                isFavorite={isFavorite(atm.id)}
-                onToggleFavorite={() => onToggleFavorite(atm.id)}
-              />
-            ))}
+            {confirmedWithCash.map((atm) => {
+              const lat = (atm as any).lat;
+              const lng = (atm as any).lng;
+              const dist =
+                userCoords && typeof lat === "number" && typeof lng === "number"
+                  ? calculateDistanceKm(userCoords.lat, userCoords.lng, lat, lng)
+                  : null;
+
+              return (
+                <AtmCard
+                  key={atm.id}
+                  atm={atm}
+                  onClick={() => onSelect(atm)}
+                  isFavorite={isFavorite(atm.id)}
+                  onToggleFavorite={() => onToggleFavorite(atm.id)}
+                  distanceKm={dist}
+                />
+              );
+            })}
           </div>
         ) : (
           <div className="rounded-2xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
@@ -1259,6 +1354,13 @@ function SearchView({
   selectedMunicipality,
   setSelectedMunicipality,
   municipalityOptions,
+  selectedNeighborhood,
+  setSelectedNeighborhood,
+  neighborhoodOptions,
+  sortByDistance,
+  setSortByDistance,
+  userCoords,
+  onRequestLocation,
 }: {
   query: string;
   setQuery: (value: string) => void;
@@ -1274,6 +1376,13 @@ function SearchView({
   selectedMunicipality: string;
   setSelectedMunicipality: (v: string) => void;
   municipalityOptions: string[];
+  selectedNeighborhood: string;
+  setSelectedNeighborhood: (v: string) => void;
+  neighborhoodOptions: string[];
+  sortByDistance: boolean;
+  setSortByDistance: (v: boolean) => void;
+  userCoords: { lat: number; lng: number } | null;
+  onRequestLocation: () => void;
 }) {
   return (
     <>
@@ -1287,62 +1396,49 @@ function SearchView({
         }
       />
       {!hasSupabase && <div className="mb-5"><DemoNotice /></div>}
-      <div className="mb-6 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
-        <label className="relative min-w-0 sm:col-span-2 lg:col-span-1">
-          <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-          <Input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Banco, endereço ou bairro..."
-            className="h-11 rounded-xl pl-10 text-xs border-border bg-background focus:border-[#C09A5B]"
-            aria-label="Pesquisar caixas automáticos"
-          />
-        </label>
-        <label className="flex h-11 items-center gap-2 rounded-xl border border-border bg-background px-3 text-xs">
-          <SlidersHorizontal className="size-4 text-[#C09A5B]" aria-hidden="true" />
-          <span className="sr-only">Filtrar disponibilidade</span>
-          <select value={filter} onChange={(event) => setFilter(event.target.value as Filter)} className="h-full w-full bg-transparent text-xs font-semibold outline-none cursor-pointer">
-            <option value="all">Todas as disponibilidades</option>
-            <option value="available">Com notas disponíveis</option>
-            <option value="no-cash">Sem notas</option>
-            <option value="out-of-service">Fora de serviço</option>
-            <option value="stale">Informação expirada</option>
-          </select>
-        </label>
-        <label className="flex h-11 items-center gap-2 rounded-xl border border-border bg-background px-3 text-xs">
-          <Banknote className="size-4 text-[#C09A5B]" aria-hidden="true" />
-          <span className="sr-only">Filtrar por banco</span>
-          <select value={selectedBank} onChange={(event) => setSelectedBank(event.target.value)} className="h-full w-full bg-transparent text-xs font-semibold outline-none cursor-pointer">
-            <option value="all">Todos os bancos</option>
-            {bankOptions.map((bank) => (
-              <option key={bank} value={bank}>{bank}</option>
-            ))}
-          </select>
-        </label>
-        <label className="flex h-11 items-center gap-2 rounded-xl border border-border bg-background px-3 text-xs">
-          <MapPin className="size-4 text-[#C09A5B]" aria-hidden="true" />
-          <span className="sr-only">Filtrar por município</span>
-          <select value={selectedMunicipality} onChange={(event) => setSelectedMunicipality(event.target.value)} className="h-full w-full bg-transparent text-xs font-semibold outline-none cursor-pointer">
-            <option value="all">Todos os municípios</option>
-            {municipalityOptions.map((m) => (
-              <option key={m} value={m}>{m}</option>
-            ))}
-          </select>
-        </label>
+      <div className="mb-6">
+        <SearchFiltersBar
+          query={query}
+          setQuery={setQuery}
+          filter={filter}
+          setFilter={setFilter}
+          selectedBank={selectedBank}
+          setSelectedBank={setSelectedBank}
+          bankOptions={bankOptions}
+          selectedMunicipality={selectedMunicipality}
+          setSelectedMunicipality={setSelectedMunicipality}
+          municipalityOptions={municipalityOptions}
+          selectedNeighborhood={selectedNeighborhood}
+          setSelectedNeighborhood={setSelectedNeighborhood}
+          neighborhoodOptions={neighborhoodOptions}
+          sortByDistance={sortByDistance}
+          setSortByDistance={setSortByDistance}
+          hasUserLocation={Boolean(userCoords)}
+          onRequestLocation={onRequestLocation}
+          resultCount={visibleAtms.length}
+          hasSupabase={hasSupabase}
+        />
       </div>
-      <p className="mb-3 text-xs text-muted-foreground">
-        {visibleAtms.length} {visibleAtms.length === 1 ? (hasSupabase ? "ATM encontrado" : "exemplo encontrado") : (hasSupabase ? "ATM encontrados" : "exemplos encontrados")}
-      </p>
       <div className="grid gap-3 md:grid-cols-2">
-        {visibleAtms.map((atm) => (
-          <AtmCard
-            key={atm.id}
-            atm={atm}
-            onClick={() => onSelect(atm)}
-            isFavorite={isFavorite(atm.id)}
-            onToggleFavorite={() => onToggleFavorite(atm.id)}
-          />
-        ))}
+        {visibleAtms.map((atm) => {
+          const lat = (atm as any).lat;
+          const lng = (atm as any).lng;
+          const dist =
+            userCoords && typeof lat === "number" && typeof lng === "number"
+              ? calculateDistanceKm(userCoords.lat, userCoords.lng, lat, lng)
+              : null;
+
+          return (
+            <AtmCard
+              key={atm.id}
+              atm={atm}
+              onClick={() => onSelect(atm)}
+              isFavorite={isFavorite(atm.id)}
+              onToggleFavorite={() => onToggleFavorite(atm.id)}
+              distanceKm={dist}
+            />
+          );
+        })}
       </div>
       {!visibleAtms.length && <EmptyResults />}
     </>
@@ -1379,6 +1475,7 @@ function FavoritesView({
   notifications = [],
   onSimulateChange,
   onOpenNotifications,
+  userCoords,
 }: {
   atms: AtmData[];
   favoriteIds: string[];
@@ -1388,6 +1485,7 @@ function FavoritesView({
   notifications?: import("@/lib/use-favorite-notifications").FavoriteNotification[];
   onSimulateChange?: (atmId: string, newStatus: "available" | "no-cash" | "out-of-service" | "stale") => void;
   onOpenNotifications?: () => void;
+  userCoords?: { lat: number; lng: number } | null;
 }) {
   const favoriteAtms = useMemo(
     () => atms.filter((atm) => favoriteIds.includes(atm.id)),
@@ -1474,15 +1572,25 @@ function FavoritesView({
             </span>
           </div>
           <div className="grid gap-3 md:grid-cols-2">
-            {favoriteAtms.map((atm) => (
-              <AtmCard
-                key={atm.id}
-                atm={atm}
-                onClick={() => onSelect(atm)}
-                isFavorite={true}
-                onToggleFavorite={() => onToggleFavorite(atm.id)}
-              />
-            ))}
+            {favoriteAtms.map((atm) => {
+              const lat = (atm as any).lat;
+              const lng = (atm as any).lng;
+              const dist =
+                userCoords && typeof lat === "number" && typeof lng === "number"
+                  ? calculateDistanceKm(userCoords.lat, userCoords.lng, lat, lng)
+                  : null;
+
+              return (
+                <AtmCard
+                  key={atm.id}
+                  atm={atm}
+                  onClick={() => onSelect(atm)}
+                  isFavorite={true}
+                  onToggleFavorite={() => onToggleFavorite(atm.id)}
+                  distanceKm={dist}
+                />
+              );
+            })}
           </div>
         </div>
       )}
