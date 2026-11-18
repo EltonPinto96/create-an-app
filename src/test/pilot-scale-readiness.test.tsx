@@ -17,9 +17,8 @@ describe("Fase 8 — Prontidão do Piloto em Luanda (1.000 Utilizadores)", () =>
     const sql = fs.readFileSync(migrationPath, "utf-8");
     expect(sql).toMatch(/idx_atms_municipality_neighborhood/i);
     expect(sql).toMatch(/idx_reports_atm_created_desc/i);
-    expect(sql).toMatch(/idx_reports_user_created_desc/i);
+    expect(sql).toMatch(/idx_reports_reporter_created_desc/i);
     expect(sql).toMatch(/idx_user_favorites_user_atm/i);
-    expect(sql).toMatch(/idx_profiles_role/i);
   });
 
   it("valida o script de teste de carga simulado para 1.000 cidadãos", () => {

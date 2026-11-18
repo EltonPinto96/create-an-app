@@ -14,6 +14,7 @@ import {
   Crosshair,
   Heart,
   House,
+  Lock,
   Map,
   MapPin,
   Menu,
@@ -767,6 +768,8 @@ function Index() {
                 isFavorite={isFavorite}
                 onToggleFavorite={toggleFavorite}
                 userCoords={userCoords}
+                onShowPrivacy={() => setShowPrivacyModal(true)}
+                onShowTerms={() => setShowTermsModal(true)}
               />
             </div>
           )}
@@ -1110,6 +1113,8 @@ function HomeView({
   isFavorite,
   onToggleFavorite,
   userCoords,
+  onShowPrivacy,
+  onShowTerms,
 }: {
   query: string;
   setQuery: (value: string) => void;
@@ -1125,6 +1130,8 @@ function HomeView({
   isFavorite: (id: string) => boolean;
   onToggleFavorite: (id: string) => void;
   userCoords?: { lat: number; lng: number } | null;
+  onShowPrivacy?: () => void;
+  onShowTerms?: () => void;
 }) {
   const availableCount = atmList.filter((a) => a.availability === "available").length;
   const noCashCount = atmList.filter((a) => a.availability === "no-cash").length;
@@ -1346,14 +1353,14 @@ function HomeView({
             <span className="text-[#C09A5B] font-semibold">Luanda, Angola</span>
             <span>·</span>
             <button
-              onClick={() => setShowPrivacyModal(true)}
+              onClick={onShowPrivacy}
               className="underline underline-offset-2 hover:text-foreground transition-colors"
             >
               Privacidade
             </button>
             <span>·</span>
             <button
-              onClick={() => setShowTermsModal(true)}
+              onClick={onShowTerms}
               className="underline underline-offset-2 hover:text-foreground transition-colors"
             >
               Termos de Uso
@@ -2045,12 +2052,14 @@ function ProfileView({
                       {r.availability === "available" ? "Com notas" : "Sem notas"}
                     </Badge>
                     <span className="text-[10px] text-muted-foreground">
-                      {new Date(r.confirmed_at).toLocaleDateString("pt-AO", {
-                        day: "2-digit",
-                        month: "short",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                      {r.confirmed_at
+                        ? new Date(r.confirmed_at).toLocaleDateString("pt-AO", {
+                            day: "2-digit",
+                            month: "short",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
+                        : "Recente"}
                     </span>
                   </div>
                 </div>
