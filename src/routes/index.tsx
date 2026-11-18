@@ -56,6 +56,8 @@ import { KusangaLogo, KusangaSymbol, KusangaSloganPill } from "@/components/Kusa
 import { NearbyAtmsModal, calculateDistanceKm } from "@/components/NearbyAtmsModal";
 import { FloatingNearbyButton } from "@/components/FloatingNearbyButton";
 import { SearchFiltersBar } from "@/components/SearchFiltersBar";
+import { PrivacyPolicyModal } from "@/components/PrivacyPolicyModal";
+import { TermsOfUseModal } from "@/components/TermsOfUseModal";
 
 type Section = "home" | "map" | "search" | "favorites" | "profile" | "admin";
 type Filter = "all" | DemoAvailability;
@@ -124,6 +126,8 @@ function Index() {
   const [locationLabel, setLocationLabel] = useState<string>("Localização GPS");
   const [customOverrides, setCustomOverrides] = useState<Record<string, Partial<RealAtm>>>({});
   const [devBypass, setDevBypass] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
 
   function openAuth(mode: "login" | "register" = "login", reason?: string | null) {
     setAuthModalMode(mode);
@@ -820,6 +824,8 @@ function Index() {
                 onSubmitAtm={handleInitiateSubmitAtm}
                 onOpenAdmin={() => setSection("admin")}
                 onOpenAuth={openAuth}
+                onShowPrivacy={() => setShowPrivacyModal(true)}
+                onShowTerms={() => setShowTermsModal(true)}
               />
             </div>
           )}
@@ -979,6 +985,14 @@ function Index() {
           <NavButton key={item.id} active={section === item.id} item={item} onClick={() => setSection(item.id)} mobile />
         ))}
       </nav>
+
+      {/* Modais de Documentos Legais */}
+      {showPrivacyModal && (
+        <PrivacyPolicyModal onClose={() => setShowPrivacyModal(false)} />
+      )}
+      {showTermsModal && (
+        <TermsOfUseModal onClose={() => setShowTermsModal(false)} />
+      )}
     </div>
   );
 }
@@ -1331,7 +1345,19 @@ function HomeView({
           <div className="flex items-center gap-4 text-[11px]">
             <span className="text-[#C09A5B] font-semibold">Luanda, Angola</span>
             <span>·</span>
-            <span>Reportes Comunitários em Tempo Real</span>
+            <button
+              onClick={() => setShowPrivacyModal(true)}
+              className="underline underline-offset-2 hover:text-foreground transition-colors"
+            >
+              Privacidade
+            </button>
+            <span>·</span>
+            <button
+              onClick={() => setShowTermsModal(true)}
+              className="underline underline-offset-2 hover:text-foreground transition-colors"
+            >
+              Termos de Uso
+            </button>
           </div>
         </div>
       </footer>
@@ -1603,11 +1629,15 @@ function ProfileView({
   onSubmitAtm,
   onOpenAdmin,
   onOpenAuth,
+  onShowPrivacy,
+  onShowTerms,
 }: {
   onShowInfo: () => void;
   onSubmitAtm: () => void;
   onOpenAdmin: () => void;
   onOpenAuth: (mode: "login" | "register") => void;
+  onShowPrivacy: () => void;
+  onShowTerms: () => void;
 }) {
   const { user, profile, isAdmin, isModerator, signOut, loading } = useAuth();
   const [loggingOut, setLoggingOut] = useState(false);
@@ -2110,6 +2140,30 @@ function ProfileView({
         <Button variant="ghost" className="text-xs text-muted-foreground" onClick={onShowInfo}>
           Ver avisos e notas do piloto
         </Button>
+      </div>
+
+      {/* Links Legais no Perfil */}
+      <div className="rounded-lg border border-border bg-card p-4">
+        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+          Documentos Legais
+        </p>
+        <div className="flex flex-col gap-2">
+          <button
+            onClick={onShowPrivacy}
+            className="flex items-center justify-between text-xs text-foreground hover:text-[#26362F] transition-colors py-1"
+          >
+            <span>Política de Privacidade e Protecção de Dados</span>
+            <span className="text-muted-foreground">→</span>
+          </button>
+          <div className="border-t border-border" />
+          <button
+            onClick={onShowTerms}
+            className="flex items-center justify-between text-xs text-foreground hover:text-[#26362F] transition-colors py-1"
+          >
+            <span>Termos de Uso Comunitário</span>
+            <span className="text-muted-foreground">→</span>
+          </button>
+        </div>
       </div>
     </>
   );

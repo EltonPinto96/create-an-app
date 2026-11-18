@@ -19,19 +19,26 @@ function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
+        <div className="text-7xl font-bold text-[#26362F] font-sora">404</div>
+        <div className="mt-3 text-4xl">🗺️</div>
+        <h1 className="mt-4 text-xl font-bold text-foreground font-sora">
+          Página não encontrada
+        </h1>
+        <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+          Esta rota não existe ou foi movida. Volta ao início para encontrar
+          os caixas automáticos perto de ti em Luanda.
         </p>
         <div className="mt-6">
           <Link
             to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex items-center justify-center rounded-xl bg-[#26362F] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#26362F]/90"
           >
-            Go home
+            Voltar ao Início
           </Link>
         </div>
+        <p className="mt-4 text-xs text-muted-foreground/60">
+          KUSANGA KITADI · A força está na ligação.
+        </p>
       </div>
     </div>
   );
@@ -47,11 +54,13 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
+        <div className="text-5xl mb-3">⚠️</div>
+        <h1 className="text-xl font-bold tracking-tight text-foreground font-sora">
+          Algo correu mal
         </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
+        <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+          Ocorreu um erro inesperado na aplicação. Podes tentar novamente ou
+          regressar ao início. A equipa do Kusanga Kitadi foi notificada.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
@@ -59,17 +68,20 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
               router.invalidate();
               reset();
             }}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex items-center justify-center rounded-xl bg-[#26362F] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#26362F]/90"
           >
-            Try again
+            Tentar Novamente
           </button>
           <a
             href="/"
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+            className="inline-flex items-center justify-center rounded-xl border border-border bg-background px-5 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
           >
-            Go home
+            Voltar ao Início
           </a>
         </div>
+        <p className="mt-4 text-xs text-muted-foreground/60">
+          KUSANGA KITADI · A força está na ligação.
+        </p>
       </div>
     </div>
   );

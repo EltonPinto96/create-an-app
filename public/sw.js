@@ -1,9 +1,13 @@
-const CACHE_NAME = "atm-kota-v1";
+const CACHE_NAME = "kusanga-kitadi-v1";
 const STATIC_ASSETS = [
   "/",
   "/favicon.ico",
   "/icon.svg",
-  "/manifest.json"
+  "/manifest.json",
+  "/kusanga-kitadi-logo.svg",
+  "/kusanga-kitadi-logo-dark.svg",
+  "/kusanga-kitadi-logo-light.svg",
+  "/kusanga-kitadi-symbol.svg"
 ];
 
 // Instalação do Service Worker
